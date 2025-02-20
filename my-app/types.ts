@@ -12,16 +12,3 @@ export interface Question {
   requirements: string[];
   testCases: TestCase[];
 }
-
-export interface Submission {
-  prompt: string;
-  timestamp: Date;
-  passed: boolean;
-  optimizationScore: number;
-}
-
-export interface QuestionState {
-  solutionUnlocked: boolean;
-  submissions: Submission[];
-  bestScore: number;
-}

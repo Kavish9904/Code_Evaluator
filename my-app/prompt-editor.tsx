@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
+import * as React from "react";
+import { Button } from "./components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { ScrollArea } from "./components/ui/scroll-area";
+import { Textarea } from "./components/ui/textarea";
+import { Badge } from "./components/ui/badge";
 import {
   ChevronLeft,
   ChevronRight,
@@ -18,44 +18,47 @@ import {
   GraduationCap,
   TestTube,
   FileOutput,
-} from "lucide-react"
-import { questions } from "./data/sample-questions"
-import type { TestCase } from "./types"
+} from "lucide-react";
+import { questions } from "./data/sample-questions";
+import type { TestCase } from "./types";
 
 export function PromptEditor() {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0)
-  const [prompt, setPrompt] = React.useState("")
-  const [selectedTestCase, setSelectedTestCase] = React.useState<TestCase | null>(null)
-  const [testResult, setTestResult] = React.useState<string | null>(null)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0);
+  const [prompt, setPrompt] = React.useState("");
+  const [selectedTestCase, setSelectedTestCase] =
+    React.useState<TestCase | null>(null);
+  const [testResult, setTestResult] = React.useState<string | null>(null);
 
-  const currentQuestion = questions[currentQuestionIndex]
+  const currentQuestion = questions[currentQuestionIndex];
 
   const handlePrevQuestion = () => {
-    setCurrentQuestionIndex((prev) => (prev > 0 ? prev - 1 : prev))
-    setPrompt("")
-    setTestResult(null)
-    setSelectedTestCase(null)
-  }
+    setCurrentQuestionIndex((prev) => (prev > 0 ? prev - 1 : prev));
+    setPrompt("");
+    setTestResult(null);
+    setSelectedTestCase(null);
+  };
 
   const handleNextQuestion = () => {
-    setCurrentQuestionIndex((prev) => (prev < questions.length - 1 ? prev + 1 : prev))
-    setPrompt("")
-    setTestResult(null)
-    setSelectedTestCase(null)
-  }
+    setCurrentQuestionIndex((prev) =>
+      prev < questions.length - 1 ? prev + 1 : prev
+    );
+    setPrompt("");
+    setTestResult(null);
+    setSelectedTestCase(null);
+  };
 
   const handleRandomQuestion = () => {
-    const randomIndex = Math.floor(Math.random() * questions.length)
-    setCurrentQuestionIndex(randomIndex)
-    setPrompt("")
-    setTestResult(null)
-    setSelectedTestCase(null)
-  }
+    const randomIndex = Math.floor(Math.random() * questions.length);
+    setCurrentQuestionIndex(randomIndex);
+    setPrompt("");
+    setTestResult(null);
+    setSelectedTestCase(null);
+  };
 
   const handleRunTest = async () => {
     if (!selectedTestCase || !prompt) {
-      setTestResult("Please select a test case and enter a prompt")
-      return
+      setTestResult("Please select a test case and enter a prompt");
+      return;
     }
 
     // Simulate API call to test prompt
@@ -64,9 +67,9 @@ export function PromptEditor() {
         selectedTestCase.input +
         "\n\nExpected Output:\n" +
         selectedTestCase.expectedOutput +
-        "\n\nYour prompt result will appear here after processing.",
-    )
-  }
+        "\n\nYour prompt result will appear here after processing."
+    );
+  };
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -77,7 +80,12 @@ export function PromptEditor() {
           <div className="flex items-center space-x-2">
             <span className="font-semibold">Problems</span>
             <div className="flex items-center space-x-1">
-              <Button variant="ghost" size="icon" onClick={handlePrevQuestion} disabled={currentQuestionIndex === 0}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handlePrevQuestion}
+                disabled={currentQuestionIndex === 0}
+              >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
@@ -88,7 +96,11 @@ export function PromptEditor() {
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={handleRandomQuestion}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRandomQuestion}
+              >
                 <Shuffle className="h-4 w-4" />
               </Button>
             </div>
@@ -135,20 +147,24 @@ export function PromptEditor() {
               <TabsContent value="question" className="flex-1 p-4">
                 <ScrollArea className="h-full">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold">{currentQuestion.title}</h2>
+                    <h2 className="text-xl font-bold">
+                      {currentQuestion.title}
+                    </h2>
                     <Badge
                       variant={
                         currentQuestion.difficulty === "Easy"
                           ? "secondary"
                           : currentQuestion.difficulty === "Medium"
-                            ? "default"
-                            : "destructive"
+                          ? "default"
+                          : "destructive"
                       }
                     >
                       {currentQuestion.difficulty}
                     </Badge>
                   </div>
-                  <p className="text-muted-foreground mb-4">{currentQuestion.description}</p>
+                  <p className="text-muted-foreground mb-4">
+                    {currentQuestion.description}
+                  </p>
                   <div className="space-y-4">
                     <h3 className="font-semibold">Requirements:</h3>
                     <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
@@ -179,7 +195,9 @@ export function PromptEditor() {
             <div className="flex-1 p-4 bg-background">
               <Textarea
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setPrompt(e.target.value)
+                }
                 placeholder="Write your prompt here..."
                 className="h-full min-h-[200px] font-mono"
               />
@@ -206,7 +224,9 @@ export function PromptEditor() {
                   {currentQuestion.testCases.map((testCase, index) => (
                     <div key={index} className="border rounded-lg p-4">
                       <Button
-                        variant={selectedTestCase === testCase ? "default" : "outline"}
+                        variant={
+                          selectedTestCase === testCase ? "default" : "outline"
+                        }
                         className="w-full justify-start mb-2"
                         onClick={() => setSelectedTestCase(testCase)}
                       >
@@ -214,9 +234,13 @@ export function PromptEditor() {
                       </Button>
                       <div className="text-sm">
                         <strong>Input:</strong>
-                        <pre className="mt-1 p-2 bg-muted rounded">{testCase.input}</pre>
+                        <pre className="mt-1 p-2 bg-muted rounded">
+                          {testCase.input}
+                        </pre>
                         <strong className="mt-2 block">Expected Output:</strong>
-                        <pre className="mt-1 p-2 bg-muted rounded">{testCase.expectedOutput}</pre>
+                        <pre className="mt-1 p-2 bg-muted rounded">
+                          {testCase.expectedOutput}
+                        </pre>
                       </div>
                     </div>
                   ))}
@@ -226,7 +250,8 @@ export function PromptEditor() {
             <TabsContent value="results" className="p-4">
               <ScrollArea className="h-48">
                 <pre className="text-sm text-muted-foreground">
-                  {testResult || "Run your prompt against a test case to see results..."}
+                  {testResult ||
+                    "Run your prompt against a test case to see results..."}
                 </pre>
               </ScrollArea>
             </TabsContent>
@@ -234,6 +259,6 @@ export function PromptEditor() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
