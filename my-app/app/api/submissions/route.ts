@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   }
 }
 
-function calculateRating(prompt: string, testCase: any): number {
+function calculateRating(prompt: string, testCase: unknown): number {
   let rating = 70; // Base rating
 
   // Factor 1: Length optimization (shorter prompts are generally better)
