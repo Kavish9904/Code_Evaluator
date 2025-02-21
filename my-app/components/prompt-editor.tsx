@@ -27,16 +27,9 @@ import {
 import { questions } from "../data/sample-questions";
 import type { Question, TestCase } from "../types";
 import { db } from "../lib/firebase";
-import {
-  collection,
-  addDoc,
-  query,
-  where,
-  getDocs,
-  orderBy,
-} from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { toast } from "react-hot-toast";
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 interface PromptEditorProps {
   initialQuestion?: Question;
@@ -195,7 +188,7 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
     }
   };
 
-  const fetchSubmissions = async () => {
+  const fetchSubmissions = useCallback(async () => {
     try {
       const submissionsRef = collection(db, "submissions");
       const q = query(
@@ -210,16 +203,15 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
         promptText: doc.data().promptText,
         timestamp: doc.data().timestamp,
       }));
-
       setSubmissions(submissionsData);
     } catch (error) {
       console.error("Error fetching submissions:", error);
     }
-  };
-
-  React.useEffect(() => {
-    fetchSubmissions();
   }, [currentQuestion.id]);
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, [fetchSubmissions]);
 
   return (
     <div className="flex flex-col h-screen bg-background">

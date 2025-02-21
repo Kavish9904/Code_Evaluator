@@ -10,26 +10,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Helper function to normalize text for comparison
-function normalizeText(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .replace(/[.,!?]/g, "")
-    .trim();
-}
-
-// Helper function to check format compliance
-function checkFormat(text: string, expectedFormat: string): boolean {
-  const formats: Record<string, RegExp> = {
-    "Summary:": /^Summary:/i,
-    "Priority:": /^Priority:/i,
-  };
-
-  const requiredFormat = formats[expectedFormat];
-  return requiredFormat ? requiredFormat.test(text) : true;
-}
-
 export async function POST(req: Request) {
   try {
     const { prompt, testCase } = await req.json();
@@ -55,7 +35,7 @@ export async function POST(req: Request) {
 
     // Evaluate based on semantic correctness
     const evaluationPrompt = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
