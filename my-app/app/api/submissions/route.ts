@@ -24,7 +24,10 @@ export async function POST(request: Request) {
       testCaseInput: String(data.testCase.input).slice(0, 500),
       testCaseOutput: String(data.testCase.expectedOutput).slice(0, 500),
       submissionNumber: submissionNumber,
-      rating: calculateRating(String(data.prompt).slice(0, 1500)),
+      rating: calculateRating(
+        String(data.prompt).slice(0, 1500),
+        data.testCase
+      ),
     };
 
     const docRef = await addDoc(submissionsRef, submissionData);
@@ -49,7 +52,7 @@ export async function POST(request: Request) {
   }
 }
 
-function calculateRating(prompt: string): number {
+function calculateRating(prompt: string, testCase: any): number {
   let rating = 70; // Base rating
 
   // Factor 1: Length optimization (shorter prompts are generally better)
