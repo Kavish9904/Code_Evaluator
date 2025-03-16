@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { questions } from "./data/sample-questions";
 import type { TestCase } from "./types";
+import { testCases } from "./data/test-cases";
 
 export function PromptEditor() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0);
@@ -225,21 +226,34 @@ export function PromptEditor() {
                     <div key={index} className="border rounded-lg p-4">
                       <Button
                         variant={
-                          selectedTestCase === testCase ? "default" : "outline"
+                          selectedTestCase?.id === testCase
+                            ? "default"
+                            : "outline"
                         }
                         className="w-full justify-start mb-2"
-                        onClick={() => setSelectedTestCase(testCase)}
+                        onClick={() => {
+                          const fullTestCase = testCases.find(
+                            (t: TestCase) => t.id === testCase
+                          );
+                          setSelectedTestCase(fullTestCase || null);
+                        }}
                       >
                         Test Case {index + 1}
                       </Button>
                       <div className="text-sm">
                         <strong>Input:</strong>
                         <pre className="mt-1 p-2 bg-muted rounded">
-                          {testCase.input}
+                          {
+                            testCases.find((t: TestCase) => t.id === testCase)
+                              ?.input
+                          }
                         </pre>
                         <strong className="mt-2 block">Expected Output:</strong>
                         <pre className="mt-1 p-2 bg-muted rounded">
-                          {testCase.expectedOutput}
+                          {
+                            testCases.find((t: TestCase) => t.id === testCase)
+                              ?.expectedOutput
+                          }
                         </pre>
                       </div>
                     </div>
@@ -261,4 +275,3 @@ export function PromptEditor() {
     </div>
   );
 }
-

@@ -30,6 +30,7 @@ import { db } from "../lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { toast } from "react-hot-toast";
 import { useState, useCallback, useEffect } from "react";
+import { testCases } from "../data/test-cases";
 
 interface PromptEditorProps {
   initialQuestion?: Question;
@@ -148,8 +149,8 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
     }
 
     // Check if prompt is too similar to solution
-    const currentSolution = currentQuestion.testCases[0].solution;
-    if (prompt.trim() === currentSolution.trim()) {
+    const fullTestCase = testCases.find((t) => t.id === selectedTestCase.id);
+    if (prompt.trim() === fullTestCase?.solution?.trim()) {
       toast.error(
         "Cannot submit the exact solution. Please write your own prompt."
       );
@@ -456,21 +457,31 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
                     <div key={index} className="border rounded-lg p-4">
                       <Button
                         variant={
-                          selectedTestCase === testCase ? "default" : "outline"
+                          selectedTestCase?.id === testCase
+                            ? "default"
+                            : "outline"
                         }
                         className="w-full justify-start mb-2"
-                        onClick={() => setSelectedTestCase(testCase)}
+                        onClick={() => {
+                          const fullTestCase = testCases.find(
+                            (t) => t.id === testCase
+                          );
+                          setSelectedTestCase(fullTestCase || null);
+                        }}
                       >
                         Test Case {index + 1}
                       </Button>
                       <div className="text-sm">
                         <strong>Input:</strong>
                         <pre className="mt-1 p-2 bg-muted rounded">
-                          {testCase.input}
+                          {testCases.find((t) => t.id === testCase)?.input}
                         </pre>
                         <strong className="mt-2 block">Expected Output:</strong>
                         <pre className="mt-1 p-2 bg-muted rounded">
-                          {testCase.expectedOutput}
+                          {
+                            testCases.find((t) => t.id === testCase)
+                              ?.expectedOutput
+                          }
                         </pre>
                       </div>
                     </div>

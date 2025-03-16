@@ -1,4 +1,5 @@
 export interface TestCase {
+  id: number;
   input: string;
   expectedOutput: string;
   solution: string;
@@ -10,5 +11,5 @@ export interface Question {
   description: string;
   difficulty: "Easy" | "Medium" | "Hard";
   requirements: string[];
-  testCases: TestCase[];
+  testCases: number[];
 }
