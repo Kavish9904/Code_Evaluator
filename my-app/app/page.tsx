@@ -14,7 +14,7 @@ export default function Home() {
       <header className="px-4 lg:px-6 h-14 flex items-center justify-between">
         <Link className="flex items-center justify-center" href="/">
           <GraduationCapIcon className="h-6 w-6" />
-          <span className="ml-2 text-lg font-bold">PromptMaster</span>
+          <span className="ml-2 text-lg font-bold">CodeEvaluator</span>
         </Link>
         <div className="md:hidden">
           <button
@@ -61,10 +61,10 @@ export default function Home() {
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="space-y-2 max-w-[90%] sm:max-w-[80%] md:max-w-[70%] lg:max-w-[60%]">
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tighter">
-                  Master the Art of Prompt Engineering
+                  Test your Potentials !
                 </h1>
                 <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-500 dark:text-gray-400">
-                  Enhance your AI skills, compete in challenges, and become a prompt engineering expert.
+                  Enhance your skills, compete in challenges, and become a expert.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mt-4">
@@ -92,7 +92,7 @@ export default function Home() {
                 <CodeIcon className="h-8 w-8 sm:h-10 sm:w-10 mb-2" />
                 <h3 className="text-lg sm:text-xl font-bold text-center">Interactive Challenges</h3>
                 <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 text-center">
-                  Engage in real-world prompt engineering scenarios and sharpen your skills.
+                  Engage in real-world scenarios and sharpen your skills.
                 </p>
               </div>
               <div className="flex flex-col items-center space-y-2 p-4 sm:p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
@@ -106,7 +106,7 @@ export default function Home() {
                 <UsersIcon className="h-8 w-8 sm:h-10 sm:w-10 mb-2" />
                 <h3 className="text-lg sm:text-xl font-bold text-center">Community</h3>
                 <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 text-center">
-                  Connect with fellow prompt engineers and share knowledge.
+                  Connect with fellow engineers and share knowledge.
                 </p>
               </div>
             </div>
@@ -114,7 +114,7 @@ export default function Home() {
         </section>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-gray-500 dark:text-gray-400">© 2025 PromptMaster. All rights reserved.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">© 2025 CodeEvaluator. All rights reserved.</p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link className="text-xs hover:underline underline-offset-4" href="#">
             Terms of Service
