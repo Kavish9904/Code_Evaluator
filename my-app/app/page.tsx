@@ -1,8 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "../components/ui/button";
-import { GraduationCapIcon, TrophyIcon } from "lucide-react";
+import {
+  GraduationCapIcon,
+  CodeIcon,
+  TrophyIcon,
+  UsersIcon,
+} from "lucide-react";
 import { useState, useEffect } from "react";
+import { Menu, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -26,22 +33,11 @@ import { authService } from "../services/auth";
 import { calculateUserStats } from "../lib/leaderboard-utils";
 import type { Submission } from "../types";
 
-interface UserStats {
-  username: string;
-  totalScore: number;
-  questionsAttempted: number;
-  averageAccuracy: number;
-  questionsSolved: {
-    Easy: number;
-    Medium: number;
-    Hard: number;
-  };
-}
-
 export default function LeaderboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ name: string } | null>(null);
-  const [userStats, setUserStats] = useState<UserStats[]>([]);
+  const [userStats, setUserStats] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
@@ -85,6 +81,8 @@ export default function LeaderboardPage() {
       setUserStats(stats);
     } catch (error) {
       console.error("Error fetching submissions:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 

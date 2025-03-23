@@ -257,7 +257,7 @@ export function PromptEditor() {
               <ScrollArea className="h-48">
                 <pre className="text-sm text-muted-foreground">
                   {testResult ||
-                    "Run your prompt against a test case to see results..."}
+                    "Run your code against a test case to see results..."}
                 </pre>
               </ScrollArea>
             </TabsContent>

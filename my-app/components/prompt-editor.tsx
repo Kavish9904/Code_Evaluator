@@ -49,9 +49,17 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { cn } from "../lib/utils";
 
 interface PromptEditorProps {
   initialQuestion?: Question;
@@ -159,6 +167,9 @@ export function PromptEditor({ initialQuestion }: PromptEditorProps) {
   const [showSolution, setShowSolution] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("question");
   const [submissions, setSubmissions] = React.useState<Submission[]>([]);
+  const [expandedSubmission, setExpandedSubmission] = useState<number | null>(
+    null
+  );
   const [showSubmitDialog, setShowSubmitDialog] = React.useState(false);
   const [studentScore, setStudentScore] = React.useState("");
   const [currentUser, setCurrentUser] = React.useState<{ name: string } | null>(
@@ -299,7 +310,6 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
       return;
     }
 
-    setIsLoading(true);
     try {
       const response = await fetch("/api/submissions", {
         method: "POST",
@@ -333,8 +343,6 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
     } catch (error) {
       console.error("Submission error:", error);
       toast.error("Error submitting code");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -394,12 +402,6 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
 
   const handleBackToDashboard = () => {
     router.push("/problems");
-  };
-
-  const handleCopyClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    navigator.clipboard.writeText(prompt);
-    toast.success("Code copied to clipboard!");
   };
 
   return (
@@ -558,7 +560,7 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
                         <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                           <h3 className="font-semibold mb-2">
                             Your Best Submission
-                          </h3>
+                            </h3>
                           <div className="grid grid-cols-3 gap-4">
                             <div>
                               <div className="text-sm text-muted-foreground">
@@ -587,9 +589,9 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
                                 ) + 1}
                               </div>
                             </div>
-                          </div>
-                        </div>
-                      )}
+                              </div>
+                            </div>
+                          )}
 
                       {/* Leaderboard */}
                       <div className="bg-card rounded-lg border shadow-sm">
@@ -816,20 +818,18 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
             <TabsContent value="testcases" className="p-4">
               <ScrollArea className="h-48">
                 <div className="space-y-4">
-                  {currentQuestion.testCases.map((testCaseId, index) => (
-                    <div key={testCaseId} className="border rounded-lg p-4">
+                  {currentQuestion.testCases.map((testCase, index) => (
+                    <div key={index} className="border rounded-lg p-4">
                       <Button
                         variant={
-                          selectedTestCase?.id === testCaseId
+                          selectedTestCase?.id === testCase
                             ? "default"
                             : "outline"
                         }
                         className="w-full justify-start mb-2"
                         onClick={() => {
-                          const fullTestCase = testCases[testCaseId];
-                          if (fullTestCase) {
-                            setSelectedTestCase(fullTestCase);
-                          }
+                          const fullTestCase = testCases[testCase];
+                          setSelectedTestCase(fullTestCase || null);
                         }}
                       >
                         Test Case {index + 1}
@@ -837,11 +837,11 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
                       <div className="text-sm">
                         <strong>Input:</strong>
                         <pre className="mt-1 p-2 bg-muted rounded">
-                          {testCases[testCaseId]?.input}
+                          {testCases[testCase]?.input}
                         </pre>
                         <strong className="mt-2 block">Expected Output:</strong>
                         <pre className="mt-1 p-2 bg-muted rounded">
-                          {testCases[testCaseId]?.expectedOutput}
+                          {testCases[testCase]?.expectedOutput}
                         </pre>
                       </div>
                     </div>
@@ -916,11 +916,6 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Add copy button */}
-      <Button onClick={handleCopyClick} className="mt-2">
-        Copy Code
-      </Button>
     </div>
   );
 }
