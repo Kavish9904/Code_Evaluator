@@ -223,7 +223,7 @@ export function PromptEditor() {
               <ScrollArea className="h-48">
                 <div className="space-y-4">
                   {currentQuestion.testCases.map((testCase, index) => (
-                    <div key={index} className="border rounded-lg p-4">
+                    <div key={testCase} className="border rounded-lg p-4">
                       <Button
                         variant={
                           selectedTestCase?.id === testCase
@@ -232,9 +232,7 @@ export function PromptEditor() {
                         }
                         className="w-full justify-start mb-2"
                         onClick={() => {
-                          const fullTestCase = testCases.find(
-                            (t: TestCase) => t.id === testCase
-                          );
+                          const fullTestCase = testCases[testCase];
                           setSelectedTestCase(fullTestCase || null);
                         }}
                       >
@@ -243,17 +241,11 @@ export function PromptEditor() {
                       <div className="text-sm">
                         <strong>Input:</strong>
                         <pre className="mt-1 p-2 bg-muted rounded">
-                          {
-                            testCases.find((t: TestCase) => t.id === testCase)
-                              ?.input
-                          }
+                          {testCases[testCase]?.input}
                         </pre>
                         <strong className="mt-2 block">Expected Output:</strong>
                         <pre className="mt-1 p-2 bg-muted rounded">
-                          {
-                            testCases.find((t: TestCase) => t.id === testCase)
-                              ?.expectedOutput
-                          }
+                          {testCases[testCase]?.expectedOutput}
                         </pre>
                       </div>
                     </div>

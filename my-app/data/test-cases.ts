@@ -1,9 +1,9 @@
-import { TestCase } from "../types";
+import type { TestCase } from "../types";
 
-export const testCases: { [key: number]: TestCase } = {
+export const testCases: Record<number, TestCase> = {
   1: {
     id: 1,
-    input: "[2,7,11,15], 9",
+    input: "[2, 7, 11, 15], 9",
     expectedOutput: "[0,1]",
     explanation: "2 + 7 = 9, so indices 0 and 1 form the solution",
     solution: `function twoSum(nums, target) {
@@ -40,8 +40,8 @@ export const testCases: { [key: number]: TestCase } = {
   }
   
   for (let i = 0; i < s.length; i++) {
-    expandAroundCenter(i, i); // Odd length
-    expandAroundCenter(i, i + 1); // Even length
+    expandAroundCenter(i, i); // Odd length palindromes
+    expandAroundCenter(i, i + 1); // Even length palindromes
   }
   
   return s.substring(start, start + maxLength);
@@ -68,6 +68,7 @@ export const testCases: { [key: number]: TestCase } = {
     
     const maxLeftX = partitionX === 0 ? -Infinity : nums1[partitionX - 1];
     const minRightX = partitionX === m ? Infinity : nums1[partitionX];
+    
     const maxLeftY = partitionY === 0 ? -Infinity : nums2[partitionY - 1];
     const minRightY = partitionY === n ? Infinity : nums2[partitionY];
     
@@ -83,6 +84,7 @@ export const testCases: { [key: number]: TestCase } = {
       low = partitionX + 1;
     }
   }
+  throw new Error("Input arrays are not sorted");
 }`,
   },
 };
