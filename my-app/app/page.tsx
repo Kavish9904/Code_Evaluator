@@ -1,130 +1,285 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { Button } from "../components/ui/button"
-import { GraduationCapIcon, CodeIcon, TrophyIcon, UsersIcon } from "lucide-react"
-import { useState } from "react"
-import { Menu, X } from "lucide-react"
+import Link from "next/link";
+import { Button } from "../components/ui/button";
+import {
+  GraduationCapIcon,
+  CodeIcon,
+  TrophyIcon,
+  UsersIcon,
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { Menu, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "../components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
+import { Medal, Target } from "lucide-react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { authService } from "../services/auth";
+import { calculateUserStats } from "../lib/leaderboard-utils";
+import type { Submission } from "../types";
 
-export default function Home() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+export default function LeaderboardPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<{ name: string } | null>(null);
+  const [userStats, setUserStats] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser) {
+      router.push("/login");
+    } else {
+      setUser(currentUser);
+      fetchSubmissions();
+    }
+  }, [router]);
+
+  const fetchSubmissions = async () => {
+    try {
+      const submissionsRef = collection(db, "submissions");
+      const querySnapshot = await getDocs(submissionsRef);
+      const submissions = querySnapshot.docs
+        .map((doc) => {
+          const data = doc.data();
+          return {
+            submissionNumber: data.submissionNumber || 0,
+            rating: data.rating || 0,
+            promptText: data.promptText || "",
+            timestamp: data.timestamp || "",
+            username: data.username || "",
+            studentScore: Number(data.studentScore) || 0,
+            aiScore: Number(data.aiScore) || 0,
+            aiFeedback: data.aiFeedback || "",
+            absoluteDifference: Number(data.absoluteDifference) || 0,
+            questionId: Number(data.questionId),
+            questionDifficulty: data.questionDifficulty || "Easy",
+            passed: Boolean(data.passed),
+            testCaseInput: data.testCaseInput || "",
+            testCaseOutput: data.testCaseOutput || "",
+            prompt: data.prompt || "",
+            id: doc.id,
+          } as Submission;
+        })
+        .filter((sub) => sub.username && sub.username !== "Anonymous");
+
+      const stats = calculateUserStats(submissions);
+      setUserStats(stats);
+    } catch (error) {
+      console.error("Error fetching submissions:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStartCoding = () => {
+    router.push("/dashboard");
+  };
+
+  const getRankEmoji = (index: number) => {
+    switch (index) {
+      case 0:
+        return "🏆";
+      case 1:
+        return "🥈";
+      case 2:
+        return "🥉";
+      default:
+        return `#${index + 1}`;
+    }
+  };
+
+  if (!user) return null;
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="px-4 lg:px-6 h-14 flex items-center justify-between">
-        <Link className="flex items-center justify-center" href="/">
-          <GraduationCapIcon className="h-6 w-6" />
-          <span className="ml-2 text-lg font-bold">CodeEvaluator</span>
-        </Link>
-        <div className="md:hidden">
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring"
-          >
-            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">
+              CodeEvaluator Leaderboard
+            </h1>
+            <p className="text-muted-foreground">
+              Welcome back, {user.name}! See how you rank among other coders.
+            </p>
+          </div>
+          <Button onClick={handleStartCoding} className="gap-2">
+            <GraduationCapIcon className="w-4 h-4" />
+            Start Coding
+          </Button>
         </div>
-        <nav
-          className={`${
-            isMenuOpen ? "flex" : "hidden"
-          } md:flex absolute md:relative top-14 left-0 right-0 md:top-0 flex-col md:flex-row items-center md:ml-auto bg-white md:bg-transparent shadow-md md:shadow-none z-20`}
-        >
-          <Link
-            className="w-full md:w-auto text-center py-2 px-4 text-sm font-medium hover:bg-gray-100 md:hover:bg-transparent md:hover:underline underline-offset-4"
-            href="#"
-          >
-            Features
-          </Link>
-          <Link
-            className="w-full md:w-auto text-center py-2 px-4 text-sm font-medium hover:bg-gray-100 md:hover:bg-transparent md:hover:underline underline-offset-4"
-            href="#"
-          >
-            Pricing
-          </Link>
-          <Link
-            className="w-full md:w-auto text-center py-2 px-4 text-sm font-medium hover:bg-gray-100 md:hover:bg-transparent md:hover:underline underline-offset-4"
-            href="#"
-          >
-            About
-          </Link>
-          <Link
-            className="w-full md:w-auto text-center py-2 px-4 text-sm font-medium hover:bg-gray-100 md:hover:bg-transparent md:hover:underline underline-offset-4"
-            href="/login"
-          >
-            Login
-          </Link>
-        </nav>
-      </header>
-      <main className="flex-1">
-        <section className="w-full py-8 sm:py-12 md:py-16 lg:py-20 xl:py-24">
-          <div className="container px-4 sm:px-6 lg:px-8 mx-auto">
-            <div className="flex flex-col items-center space-y-4 text-center">
-              <div className="space-y-2 max-w-[90%] sm:max-w-[80%] md:max-w-[70%] lg:max-w-[60%]">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tighter">
-                  Test your Potentials !
-                </h1>
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-500 dark:text-gray-400">
-                  Enhance your skills, compete in challenges, and become a expert.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mt-4">
-                <Link href="/signup">
-                  <Button size="lg" className="w-full sm:w-auto">
-                    Get Started
-                  </Button>
-                </Link>
-                <Link href="/login">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                    Log In
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-        <section className="w-full py-8 sm:py-12 md:py-16 lg:py-20 bg-gray-100 dark:bg-gray-800">
-          <div className="container px-4 sm:px-6 lg:px-8 mx-auto">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tighter text-center mb-8 sm:mb-12">
-              Features
-            </h2>
-            <div className="grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="flex flex-col items-center space-y-2 p-4 sm:p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
-                <CodeIcon className="h-8 w-8 sm:h-10 sm:w-10 mb-2" />
-                <h3 className="text-lg sm:text-xl font-bold text-center">Interactive Challenges</h3>
-                <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 text-center">
-                  Engage in real-world scenarios and sharpen your skills.
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 p-4 sm:p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
-                <TrophyIcon className="h-8 w-8 sm:h-10 sm:w-10 mb-2" />
-                <h3 className="text-lg sm:text-xl font-bold text-center">Competitions</h3>
-                <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 text-center">
-                  Participate in regular competitions and showcase your expertise.
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 p-4 sm:p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
-                <UsersIcon className="h-8 w-8 sm:h-10 sm:w-10 mb-2" />
-                <h3 className="text-lg sm:text-xl font-bold text-center">Community</h3>
-                <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 text-center">
-                  Connect with fellow engineers and share knowledge.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-gray-500 dark:text-gray-400">© 2025 CodeEvaluator. All rights reserved.</p>
-        <nav className="sm:ml-auto flex gap-4 sm:gap-6">
-          <Link className="text-xs hover:underline underline-offset-4" href="#">
-            Terms of Service
-          </Link>
-          <Link className="text-xs hover:underline underline-offset-4" href="#">
-            Privacy
-          </Link>
-        </nav>
-      </footer>
-    </div>
-  )
-}
 
+        {/* Stats Overview */}
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrophyIcon className="w-4 h-4" />
+                Top Performers
+              </CardTitle>
+              <CardDescription>
+                Users with the highest overall scores
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {userStats.slice(0, 3).map((stat, index) => (
+                <div
+                  key={stat.username}
+                  className="flex items-center justify-between mb-2 last:mb-0"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{getRankEmoji(index)}</span>
+                    <span className="font-medium">{stat.username}</span>
+                  </div>
+                  <span className="font-bold">
+                    {stat.totalScore.toFixed(0)}
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Medal className="w-4 h-4" />
+                Most Active
+              </CardTitle>
+              <CardDescription>
+                Users who solved the most questions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {[...userStats]
+                .sort((a, b) => b.questionsAttempted - a.questionsAttempted)
+                .slice(0, 3)
+                .map((stat, index) => (
+                  <div
+                    key={stat.username}
+                    className="flex items-center justify-between mb-2 last:mb-0"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{getRankEmoji(index)}</span>
+                      <span className="font-medium">{stat.username}</span>
+                    </div>
+                    <span className="font-bold">{stat.questionsAttempted}</span>
+                  </div>
+                ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-4 h-4" />
+                Highest Accuracy
+              </CardTitle>
+              <CardDescription>
+                Users with the best solution accuracy
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {[...userStats]
+                .sort((a, b) => b.averageAccuracy - a.averageAccuracy)
+                .slice(0, 3)
+                .map((stat, index) => (
+                  <div
+                    key={stat.username}
+                    className="flex items-center justify-between mb-2 last:mb-0"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{getRankEmoji(index)}</span>
+                      <span className="font-medium">{stat.username}</span>
+                    </div>
+                    <span className="font-bold">
+                      {stat.averageAccuracy.toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Leaderboard Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Global Rankings</CardTitle>
+            <CardDescription>
+              Rankings are based on question difficulty, accuracy, and total
+              questions solved
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">Rank</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead className="text-center">
+                    Questions Solved
+                  </TableHead>
+                  <TableHead className="text-center">Accuracy</TableHead>
+                  <TableHead className="text-right">Total Score</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {userStats.map((stat, index) => (
+                  <TableRow
+                    key={stat.username}
+                    className={
+                      user.name === stat.username ? "bg-primary/5" : ""
+                    }
+                  >
+                    <TableCell className="font-medium">
+                      {getRankEmoji(index)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {stat.username}
+                        {user.name === stat.username && (
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                            You
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {stat.questionsAttempted}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          E: {stat.questionsSolved.Easy} | M:{" "}
+                          {stat.questionsSolved.Medium} | H:{" "}
+                          {stat.questionsSolved.Hard}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {stat.averageAccuracy.toFixed(1)}%
+                    </TableCell>
+                    <TableCell className="text-right font-bold">
+                      {stat.totalScore.toFixed(0)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

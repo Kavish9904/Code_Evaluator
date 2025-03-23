@@ -15,7 +15,7 @@ import { GraduationCapIcon } from "lucide-react";
 import { questions } from "../../data/sample-questions";
 import { authService } from "../../services/auth";
 
-export default function DashboardPage() {
+export default function ProblemsPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ name: string } | null>(null);
 
@@ -54,11 +54,13 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="px-4 lg:px-6 h-14 flex items-center justify-between border-b">
-        <Link className="flex items-center justify-center" href="/">
-          <GraduationCapIcon className="h-6 w-6" />
-          <span className="ml-2 text-lg font-bold">CodeEvaluator</span>
-        </Link>
+      <header className="flex items-center justify-between px-4 h-14 border-b">
+        <div className="flex items-center space-x-4">
+          <Link href="/" className="flex items-center space-x-2">
+            <GraduationCapIcon className="w-6 h-6" />
+            <span className="font-semibold">CodeEvaluator</span>
+          </Link>
+        </div>
         <nav className="flex items-center gap-4 sm:gap-6">
           <Link
             className="text-sm font-medium hover:underline underline-offset-4"
@@ -85,12 +87,13 @@ export default function DashboardPage() {
       </header>
       <main className="flex-1 py-12 px-4 md:px-6">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">Welcome, {user.name}</h1>
+          <h1 className="text-3xl font-bold mb-6">Available Problems</h1>
           <div className="grid gap-6 md:grid-cols-2">
             {questions.map((question) => (
               <Card
                 key={question.id}
                 className="cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => handleQuestionSelect(question.id)}
               >
                 <CardHeader>
                   <CardTitle className="text-xl font-semibold mb-2 truncate">
@@ -110,9 +113,7 @@ export default function DashboardPage() {
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                     {question.description}
                   </p>
-                  <Button onClick={() => handleQuestionSelect(question.id)}>
-                    Start Challenge
-                  </Button>
+                  <Button>Start Challenge</Button>
                 </CardContent>
               </Card>
             ))}

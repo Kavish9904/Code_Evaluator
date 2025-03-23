@@ -25,18 +25,134 @@ import {
   FileOutput,
 } from "lucide-react";
 import { questions } from "../data/sample-questions";
-import type { Question, TestCase } from "../types";
+import type { Question, TestCase, Submission } from "../types";
 import { db } from "../lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { toast } from "react-hot-toast";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { testCases } from "../data/test-cases";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { authService } from "../services/auth";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { cn } from "../lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 interface PromptEditorProps {
   initialQuestion?: Question;
 }
 
+// Memoized submission sorting and filtering
+function useProcessedSubmissions(submissions: Submission[]) {
+  return useMemo(() => {
+    return submissions
+      .filter(
+        (submission) =>
+          submission.username &&
+          submission.username !== "Anonymous" &&
+          (submission.code || submission.prompt) &&
+          submission.passed
+      )
+      .sort((a, b) => {
+        // Calculate weighted scores (70% difference, 30% attempts)
+        const aScore =
+          (100 - Math.abs(a.studentScore - a.aiScore)) * 0.7 +
+          (100 / (a.attempts || 1)) * 0.3;
+        const bScore =
+          (100 - Math.abs(b.studentScore - b.aiScore)) * 0.7 +
+          (100 / (b.attempts || 1)) * 0.3;
+        return bScore - aScore; // Higher score is better
+      });
+  }, [submissions]);
+}
+
+// Score difference indicator component
+function ScoreDifference({
+  difference,
+  attempts,
+}: {
+  difference: number;
+  attempts: number;
+}) {
+  const color = useMemo(() => {
+    if (difference <= 5) return "text-green-500";
+    if (difference <= 10) return "text-yellow-500";
+    return "text-red-500";
+  }, [difference]);
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className={cn("font-medium", color)}>{difference}</span>
+      <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all",
+            difference <= 5
+              ? "bg-green-500"
+              : difference <= 10
+              ? "bg-yellow-500"
+              : "bg-red-500"
+          )}
+          style={{ width: `${100 - Math.min(100, difference)}%` }}
+        />
+      </div>
+      <span className="text-xs text-muted-foreground ml-2">
+        ({attempts} attempt{attempts !== 1 ? "s" : ""})
+      </span>
+    </div>
+  );
+}
+
+// Helper function to calculate solved questions by difficulty
+function getSolvedQuestionCounts(submissions: Submission[], username: string) {
+  // Get all passed submissions for this user
+  const userSubmissions = submissions.filter(
+    (s) => s.username === username && s.passed
+  );
+
+  // Track unique solved questions
+  const solvedQuestions = new Map<number, string>();
+  userSubmissions.forEach((s) => {
+    if (!solvedQuestions.has(s.questionId)) {
+      solvedQuestions.set(s.questionId, s.questionDifficulty);
+    }
+  });
+
+  // Count by difficulty
+  const difficulties = Array.from(solvedQuestions.values());
+  return {
+    easy: difficulties.filter((d) => d === "Easy").length,
+    medium: difficulties.filter((d) => d === "Medium").length,
+    hard: difficulties.filter((d) => d === "Hard").length,
+    total: difficulties.length,
+  };
+}
+
 export function PromptEditor({ initialQuestion }: PromptEditorProps) {
+  const router = useRouter();
   const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(
     initialQuestion
       ? questions.findIndex((q) => q.id === initialQuestion.id)
@@ -50,19 +166,39 @@ export function PromptEditor({ initialQuestion }: PromptEditorProps) {
   const [hasPassedTest, setHasPassedTest] = React.useState(false);
   const [showSolution, setShowSolution] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("question");
-  const [submissions, setSubmissions] = React.useState<
-    Array<{
-      submissionNumber: number;
-      rating: number;
-      promptText: string;
-      timestamp: string;
-    }>
-  >([]);
+  const [submissions, setSubmissions] = React.useState<Submission[]>([]);
   const [expandedSubmission, setExpandedSubmission] = useState<number | null>(
     null
   );
+  const [showSubmitDialog, setShowSubmitDialog] = React.useState(false);
+  const [studentScore, setStudentScore] = React.useState("");
+  const [currentUser, setCurrentUser] = React.useState<{ name: string } | null>(
+    null
+  );
+  const [expandedFeedback, setExpandedFeedback] = React.useState<number | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(false);
 
   const currentQuestion = questions[currentQuestionIndex];
+
+  // Use memoized submissions
+  const validSubmissions = useProcessedSubmissions(submissions);
+
+  // Memoize current user's best submission
+  const userBestSubmission = useMemo(() => {
+    if (!currentUser) return null;
+    return validSubmissions.find((s) => s.username === currentUser.name);
+  }, [validSubmissions, currentUser]);
+
+  useEffect(() => {
+    const user = authService.getCurrentUser();
+    if (!user) {
+      toast.error("Please log in to submit solutions");
+      return;
+    }
+    setCurrentUser(user);
+  }, []);
 
   const handlePrevQuestion = () => {
     setCurrentQuestionIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -90,23 +226,24 @@ export function PromptEditor({ initialQuestion }: PromptEditorProps) {
 
   const handleRunTest = async () => {
     if (!selectedTestCase || !prompt) {
-      setTestResult("Please select a test case and enter a prompt");
+      setTestResult("Please select a test case and enter your code");
       return;
     }
 
     setIsEvaluating(true);
-    setTestResult("Evaluating results...");
+    setTestResult("Evaluating code...");
     setShowSolution(false);
 
     try {
-      const response = await fetch("/api/evaluate", {
+      const response = await fetch("/api/evaluate-code", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt,
+          code: prompt,
           testCase: selectedTestCase,
+          language: "javascript",
         }),
       });
 
@@ -123,14 +260,15 @@ ${selectedTestCase.input}
 Expected Output:
 ${selectedTestCase.expectedOutput}
 
-Actual Output:
+Your Output:
 ${result.output}
 
-${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
+${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}
+${result.error ? `\nError: ${result.error}` : ""}`;
 
         setTestResult(formattedResult);
       } else {
-        throw new Error(result.error || "Evaluation failed");
+        throw new Error(result.error || "Code evaluation failed");
       }
     } catch (error) {
       setTestResult(
@@ -142,18 +280,33 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitClick = () => {
+    setShowSubmitDialog(true);
+  };
+
+  const handleSubmitConfirm = async () => {
     if (!hasPassedTest || !prompt || !selectedTestCase) {
       toast.error("Please pass the test first!");
       return;
     }
 
-    // Check if prompt is too similar to solution
-    const fullTestCase = testCases.find((t) => t.id === selectedTestCase.id);
-    if (prompt.trim() === fullTestCase?.solution?.trim()) {
+    // Check if code is too similar to solution only if user has seen the solution
+    const fullTestCase = testCases[selectedTestCase.id];
+    if (showSolution && prompt.trim() === fullTestCase?.solution?.trim()) {
       toast.error(
-        "Cannot submit the exact solution. Please write your own prompt."
+        "Cannot submit the exact solution after viewing it. Please write your own code."
       );
+      return;
+    }
+
+    if (!currentUser) {
+      toast.error("Please log in to submit solutions");
+      return;
+    }
+
+    const score = parseInt(studentScore);
+    if (isNaN(score) || score < 0 || score > 100) {
+      toast.error("Please enter a valid score between 0 and 100");
       return;
     }
 
@@ -164,10 +317,12 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt,
+          code: prompt,
           questionId: currentQuestion.id,
           testCase: selectedTestCase,
           passed: hasPassedTest,
+          username: currentUser.name,
+          studentScore: score,
         }),
       });
 
@@ -179,13 +334,15 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
         setSelectedTestCase(null);
         setHasPassedTest(false);
         setTestResult(null);
+        setStudentScore("");
+        setShowSubmitDialog(false);
         fetchSubmissions();
       } else {
         toast.error(result.error || "Submission failed");
       }
     } catch (error) {
       console.error("Submission error:", error);
-      toast.error("Error submitting prompt");
+      toast.error("Error submitting code");
     }
   };
 
@@ -198,21 +355,54 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
       );
 
       const querySnapshot = await getDocs(q);
-      const submissionsData = querySnapshot.docs.map((doc) => ({
-        submissionNumber: doc.data().submissionNumber,
-        rating: doc.data().rating,
-        promptText: doc.data().promptText,
-        timestamp: doc.data().timestamp,
-      }));
+      const submissionsData = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        console.log("Raw submission data:", data); // Debug log for raw data
+        return {
+          submissionNumber: data.submissionNumber,
+          rating: data.rating,
+          promptText: data.promptText,
+          code: data.code || data.prompt,
+          timestamp: data.timestamp,
+          username: data.username || "Anonymous",
+          studentScore: Number(data.studentScore) || 0,
+          aiScore: Number(data.aiScore) || 0,
+          aiFeedback: data.aiFeedback || "",
+          absoluteDifference: Number(data.absoluteDifference) || 0,
+          questionId: Number(data.questionId),
+          passed: Boolean(data.passed),
+          testCaseInput: data.testCaseInput,
+          testCaseOutput: data.testCaseOutput,
+        };
+      }) as Submission[];
+
+      console.log("Processed submissions:", submissionsData); // Debug log for processed data
       setSubmissions(submissionsData);
+
+      // Debug log for validSubmissions
+      console.log(
+        "Valid submissions:",
+        submissionsData.filter(
+          (submission) =>
+            submission.username &&
+            submission.username !== "Anonymous" &&
+            (submission.code || submission.prompt) &&
+            submission.passed
+        )
+      );
     } catch (error) {
       console.error("Error fetching submissions:", error);
+      toast.error("Failed to load submissions");
     }
   }, [currentQuestion.id]);
 
   useEffect(() => {
     fetchSubmissions();
   }, [fetchSubmissions]);
+
+  const handleBackToDashboard = () => {
+    router.push("/problems");
+  };
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -221,7 +411,12 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
         <div className="flex items-center space-x-4">
           <GraduationCap className="w-6 h-6" />
           <div className="flex items-center space-x-2">
-            <span className="font-semibold">Problems</span>
+            <span
+              className="font-semibold cursor-pointer hover:text-primary transition-colors"
+              onClick={handleBackToDashboard}
+            >
+              Problems
+            </span>
             <div className="flex items-center space-x-1">
               <Button
                 variant="ghost"
@@ -270,7 +465,7 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
             variant="default"
             size="sm"
             className="gap-2"
-            onClick={handleSubmit}
+            onClick={handleSubmitClick}
             disabled={!hasPassedTest}
           >
             <Upload className="w-4 h-4" />
@@ -354,64 +549,234 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
               </TabsContent>
               <TabsContent value="submissions" className="flex-1 p-4">
                 <ScrollArea className="h-full">
-                  {submissions.length > 0 ? (
-                    <div className="space-y-2">
-                      {submissions.map((submission) => (
-                        <div
-                          key={submission.submissionNumber}
-                          className="border rounded-lg"
-                        >
-                          <button
-                            onClick={() =>
-                              setExpandedSubmission(
-                                expandedSubmission ===
-                                  submission.submissionNumber
-                                  ? null
-                                  : submission.submissionNumber
-                              )
-                            }
-                            className="w-full p-4 flex justify-between items-center hover:bg-muted/50 transition-colors"
-                          >
-                            <h3 className="font-semibold">
-                              Submission {submission.submissionNumber}
-                            </h3>
-                            <Badge
-                              variant={
-                                submission.rating >= 90
-                                  ? "secondary"
-                                  : submission.rating >= 70
-                                  ? "default"
-                                  : "destructive"
-                              }
-                            >
-                              Rating: {submission.rating || 0}/100
-                            </Badge>
-                          </button>
-
-                          {expandedSubmission ===
-                            submission.submissionNumber && (
-                            <div className="p-4 border-t bg-muted/30">
-                              <div className="bg-muted p-4 rounded-md mb-2">
-                                <pre className="text-sm whitespace-pre-wrap">
-                                  {submission.promptText ||
-                                    "No prompt available"}
-                                </pre>
-                              </div>
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-32">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                    </div>
+                  ) : validSubmissions.length > 0 ? (
+                    <div className="space-y-6">
+                      {/* User's Best Submission */}
+                      {userBestSubmission && (
+                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                          <h3 className="font-semibold mb-2">
+                            Your Best Submission
+                          </h3>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
                               <div className="text-sm text-muted-foreground">
-                                Submitted:{" "}
-                                {new Date(
-                                  submission.timestamp
-                                ).toLocaleString()}
+                                Your Score
+                              </div>
+                              <div className="text-2xl font-bold">
+                                {userBestSubmission.studentScore}
                               </div>
                             </div>
-                          )}
+                            <div>
+                              <div className="text-sm text-muted-foreground">
+                                AI Score
+                              </div>
+                              <div className="text-2xl font-bold">
+                                {userBestSubmission.aiScore}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-sm text-muted-foreground">
+                                Rank
+                              </div>
+                              <div className="text-2xl font-bold">
+                                #
+                                {validSubmissions.findIndex(
+                                  (s) => s.username === currentUser!.name
+                                ) + 1}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      ))}
+                      )}
+
+                      {/* Leaderboard */}
+                      <div className="bg-card rounded-lg border shadow-sm">
+                        <div className="p-4 border-b">
+                          <h3 className="font-semibold">Leaderboard</h3>
+                        </div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableCell className="font-medium w-16">
+                                Rank
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                Username
+                              </TableCell>
+                              <TableCell className="font-medium text-center">
+                                Scores
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                Difference
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                Feedback
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                Solved Questions
+                              </TableCell>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {validSubmissions.map((submission, index) => (
+                              <React.Fragment key={index}>
+                                <TableRow
+                                  className={cn(
+                                    currentUser?.name === submission.username &&
+                                      "bg-primary/5",
+                                    "transition-colors hover:bg-muted/50 cursor-pointer"
+                                  )}
+                                  onClick={() =>
+                                    setExpandedFeedback(
+                                      expandedFeedback === index ? null : index
+                                    )
+                                  }
+                                >
+                                  <TableCell className="font-medium">
+                                    {index === 0
+                                      ? "🥇"
+                                      : index === 1
+                                      ? "🥈"
+                                      : index === 2
+                                      ? "🥉"
+                                      : index + 1}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      {submission.username}
+                                      {currentUser?.name ===
+                                        submission.username && (
+                                        <Badge variant="secondary">You</Badge>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex justify-center items-center gap-2">
+                                      <div className="text-center">
+                                        <div className="font-medium">
+                                          {submission.studentScore}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                          Student
+                                        </div>
+                                      </div>
+                                      <div className="text-muted-foreground">
+                                        vs
+                                      </div>
+                                      <div className="text-center">
+                                        <div className="font-medium">
+                                          {submission.aiScore}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                          AI
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <ScoreDifference
+                                      difference={Math.abs(
+                                        submission.studentScore -
+                                          submission.aiScore
+                                      )}
+                                      attempts={submission.attempts || 1}
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center justify-between">
+                                      <span className="truncate max-w-[200px]">
+                                        {submission.aiFeedback}
+                                      </span>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation(); // Prevent row click
+                                          setExpandedFeedback(
+                                            expandedFeedback === index
+                                              ? null
+                                              : index
+                                          );
+                                        }}
+                                      >
+                                        {expandedFeedback === index
+                                          ? "Less"
+                                          : "More"}
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="text-sm">
+                                      {(() => {
+                                        const counts = getSolvedQuestionCounts(
+                                          submissions,
+                                          submission.username
+                                        );
+                                        return `E: ${counts.easy} | M: ${counts.medium} | H: ${counts.hard}`;
+                                      })()}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                                <AnimatePresence>
+                                  {expandedFeedback === index && (
+                                    <motion.tr
+                                      initial={{ opacity: 0, height: 0 }}
+                                      animate={{ opacity: 1, height: "auto" }}
+                                      exit={{ opacity: 0, height: 0 }}
+                                      transition={{ duration: 0.2 }}
+                                    >
+                                      <TableCell colSpan={5} className="p-0">
+                                        <motion.div
+                                          initial={{ opacity: 0 }}
+                                          animate={{ opacity: 1 }}
+                                          exit={{ opacity: 0 }}
+                                          className="bg-muted/30 p-4 mx-4 my-2 rounded-lg"
+                                        >
+                                          <div className="space-y-4">
+                                            <div>
+                                              <Label>AI Feedback</Label>
+                                              <div className="mt-2 p-4 bg-muted rounded-lg">
+                                                <p className="text-sm whitespace-pre-wrap">
+                                                  {submission.aiFeedback}
+                                                </p>
+                                              </div>
+                                            </div>
+                                            {currentUser?.name ===
+                                              submission.username && (
+                                              <div className="mt-4 border-t pt-4">
+                                                <Label>Your Code</Label>
+                                                <pre className="mt-2 p-4 bg-slate-950 rounded-lg overflow-x-auto">
+                                                  <code className="text-white text-sm whitespace-pre-wrap">
+                                                    {submission.code ||
+                                                      "undefined"}
+                                                  </code>
+                                                </pre>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </motion.div>
+                                      </TableCell>
+                                    </motion.tr>
+                                  )}
+                                </AnimatePresence>
+                              </React.Fragment>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   ) : (
-                    <p className="text-center text-muted-foreground">
-                      No submissions yet. Submit your first prompt!
-                    </p>
+                    <div className="text-center py-12">
+                      <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="font-semibold mb-2">No submissions yet</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Be the first to submit your solution!
+                      </p>
+                    </div>
                   )}
                 </ScrollArea>
               </TabsContent>
@@ -423,14 +788,14 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
             <div className="px-4 py-2 border-b flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <code className="text-sm">&lt;/&gt;</code>
-                <span className="font-medium">Prompt Code</span>
+                <span className="font-medium">Source Code</span>
               </div>
             </div>
             <div className="flex-1 p-4 bg-background">
               <Textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Write your prompt here..."
+                placeholder="Write your code here..."
                 className="h-full min-h-[200px] font-mono"
               />
             </div>
@@ -463,9 +828,7 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
                         }
                         className="w-full justify-start mb-2"
                         onClick={() => {
-                          const fullTestCase = testCases.find(
-                            (t) => t.id === testCase
-                          );
+                          const fullTestCase = testCases[testCase];
                           setSelectedTestCase(fullTestCase || null);
                         }}
                       >
@@ -474,14 +837,11 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
                       <div className="text-sm">
                         <strong>Input:</strong>
                         <pre className="mt-1 p-2 bg-muted rounded">
-                          {testCases.find((t) => t.id === testCase)?.input}
+                          {testCases[testCase]?.input}
                         </pre>
                         <strong className="mt-2 block">Expected Output:</strong>
                         <pre className="mt-1 p-2 bg-muted rounded">
-                          {
-                            testCases.find((t) => t.id === testCase)
-                              ?.expectedOutput
-                          }
+                          {testCases[testCase]?.expectedOutput}
                         </pre>
                       </div>
                     </div>
@@ -521,6 +881,41 @@ ${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}`;
           </Tabs>
         </div>
       </div>
+
+      {/* Submit Dialog */}
+      <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Submit Your Solution</DialogTitle>
+            <DialogDescription>
+              Please enter your self-reported score before submitting.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="score">Self-reported Score (0-100)</Label>
+              <Input
+                id="score"
+                type="number"
+                min="0"
+                max="100"
+                value={studentScore}
+                onChange={(e) => setStudentScore(e.target.value)}
+                placeholder="Enter your score"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowSubmitDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitConfirm}>Submit</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
