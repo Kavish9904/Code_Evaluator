@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "../../components/ui/button";
@@ -12,12 +12,21 @@ import {
   CardContent,
 } from "../../components/ui/card";
 import { GraduationCapIcon } from "lucide-react";
-import { questions } from "../../data/sample-questions";
 import { authService } from "../../services/auth";
+
+interface Question {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: "Easy" | "Medium" | "Hard";
+  category: string;
+}
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ name: string } | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
@@ -28,7 +37,26 @@ export default function DashboardPage() {
     }
   }, [router]);
 
-  const handleQuestionSelect = (questionId: number) => {
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const response = await fetch("/api/questions");
+        if (!response.ok) {
+          throw new Error("Failed to fetch questions");
+        }
+        const data = await response.json();
+        setQuestions(data);
+      } catch (error) {
+        console.error("Error fetching questions:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchQuestions();
+  }, []);
+
+  const handleQuestionSelect = (questionId: string) => {
     router.push(`/challenges?id=${questionId}`);
   };
 
@@ -50,7 +78,18 @@ export default function DashboardPage() {
     }
   };
 
+  const stats = {
+    totalQuestions: questions.length,
+    easyQuestions: questions.filter((q) => q.difficulty === "Easy").length,
+    mediumQuestions: questions.filter((q) => q.difficulty === "Medium").length,
+    hardQuestions: questions.filter((q) => q.difficulty === "Hard").length,
+  };
+
   if (!user) return null;
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -59,28 +98,16 @@ export default function DashboardPage() {
           <GraduationCapIcon className="h-6 w-6" />
           <span className="ml-2 text-lg font-bold">CodeEvaluator</span>
         </Link>
-        <nav className="flex items-center gap-4 sm:gap-6">
+        <nav className="flex items-center gap-4">
           <Link
-            className="text-sm font-medium hover:underline underline-offset-4"
-            href="/"
+            href="/rankings"
+            className="text-sm font-medium hover:underline"
           >
-            Leaderboard
+            Rankings
           </Link>
-          <Link
-            className="text-sm font-medium hover:underline underline-offset-4"
-            href="/problems"
-          >
-            Problems
-          </Link>
-          <Link
-            className="text-sm font-medium hover:underline underline-offset-4"
-            href="/profile"
-          >
+          <Link href="/profile" className="text-sm font-medium hover:underline">
             Profile
           </Link>
-          <Button variant="ghost" onClick={handleLogout}>
-            Logout
-          </Button>
         </nav>
       </header>
       <main className="flex-1 py-12 px-4 md:px-6">

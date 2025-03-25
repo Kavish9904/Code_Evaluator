@@ -1,0 +1,27 @@
+"Selected rubric"  
+Solution 1: Dijkstra's Algorithm Approach
+
+"Feedback with marks"  
+1. Create a data structure to store minimum costs to reach each cell, initialized with maximum value. [1 mark]  
+   - The `dis` array is correctly initialized with a large value (100000000) for each cell. [1 mark]
+
+2. Set up a priority-based data structure to process cells in order of minimum cost. [1 mark]  
+   - A `PriorityQueue` is used with a custom comparator to process cells based on minimum cost. [1 mark]
+
+3. Initialize the starting point with its cost in both data structures. [1 mark]  
+   - The starting point (0,0) is initialized with its grid cost in the `dis` array and added to the priority queue. [1 mark]
+
+4. Extract the minimum cost cell from the priority structure. [1 mark]  
+   - The code uses `q.poll()` to extract the minimum cost cell from the priority queue. [1 mark]
+
+5. Explore all four adjacent cells and update costs if cheaper paths are found. [1 mark]  
+   - The code correctly checks and updates the costs for all four possible directions (up, down, left, right). [1 mark]
+
+6. Handle edge cases and boundary conditions correctly. [1 mark]  
+   - The code includes boundary checks for each direction to ensure valid cell access. [1 mark]
+
+7. Return the minimum cost stored for the destination cell. [1 mark]  
+   - The function returns the cost stored in `dis[n-1][n-1]`, which is the minimum cost to reach the destination. [1 mark]
+
+"Marks Scored out of total marks"  
+7 out of 7 marks

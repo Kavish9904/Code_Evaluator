@@ -19,22 +19,22 @@ export interface Question {
 }
 
 export interface Submission {
+  id?: string;
   submissionNumber?: number;
   rating?: number;
   promptText?: string;
-  code?: string;
-  timestamp?: string;
+  code: string;
+  timestamp: string;
   username: string;
   studentScore: number;
   aiScore: number;
-  aiFeedback: string;
-  absoluteDifference: number;
+  aiFeedback?: string;
+  absoluteDifference?: number;
   questionId: number;
-  questionDifficulty: string;
-  passed: boolean;
+  questionDifficulty?: string;
+  passed?: boolean;
   testCaseInput?: string;
   testCaseOutput?: string;
   prompt?: string;
-  id?: string;
-  attempts?: number;
+  feedback?: string;
 }

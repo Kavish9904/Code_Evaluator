@@ -59,28 +59,19 @@ export default function ProfilePage() {
           <GraduationCapIcon className="h-6 w-6" />
           <span className="ml-2 text-lg font-bold">CodeEvaluator</span>
         </Link>
-        <nav className="flex items-center gap-4 sm:gap-6">
+        <nav className="flex items-center gap-4">
           <Link
-            className="text-sm font-medium hover:underline underline-offset-4"
-            href="/"
+            href="/dashboard"
+            className="text-sm font-medium hover:underline"
           >
-            Leaderboard
+            Dashboard
           </Link>
           <Link
-            className="text-sm font-medium hover:underline underline-offset-4"
-            href="/problems"
+            href="/rankings"
+            className="text-sm font-medium hover:underline"
           >
-            Problems
+            Rankings
           </Link>
-          <Link
-            className="text-sm font-medium hover:underline underline-offset-4"
-            href="/profile"
-          >
-            Profile
-          </Link>
-          <Button variant="ghost" onClick={handleLogout}>
-            Logout
-          </Button>
         </nav>
       </header>
       <main className="flex-1 py-12 px-4 md:px-6">

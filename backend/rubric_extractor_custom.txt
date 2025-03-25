@@ -1,0 +1,460 @@
+
+custom rubric approach
+
+import json
+import logging
+import re
+from typing import Dict, List, Any, Tuple, Optional
+
+from utils.rubric_parser import parse_rubric, get_approach_marks
+from llm_client import query_llm, construct_evaluation_prompt
+from utils.sanitizer import process_inputs
+
+logger = logging.getLogger(__name__)
+comment_start = "/*"
+comment_end = "*/"
+comment_line = "//"
+nl = "\n"
+
+
+class RubricExtractorAgent:
+    """
+    Agent responsible for extracting and adapting rubric information based on student solution.
+    Can generate custom rubric points when the solution approach isn't covered in the original rubric.
+    """
+    
+    def __init__(self):
+        pass
+    
+    async def extract_rubric_for_solution(
+        self, 
+        problem_statement: str, 
+        rubric: str, 
+        solution_code: str,
+        model_solution: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Extract relevant rubric information based on the provided solution,
+        or generate a custom rubric if the solution approach isn't in the rubric.
+        
+        Args:
+            problem_statement: The problem statement
+            rubric: The evaluation rubric text
+            solution_code: The student's solution code
+            model_solution: Optional model solution provided by instructor
+            
+        Returns:
+            Dict containing the extracted/adapted rubric information
+        """
+        # Process and sanitize inputs
+        clean_problem, clean_rubric, clean_solution = process_inputs(
+            problem_statement, rubric, solution_code
+        )
+        
+        # Parse the rubric structure
+        parsed_rubric = parse_rubric(clean_rubric)
+        
+        # Extract solution approach identifiers from rubric
+        approach_identifiers = self._extract_approach_identifiers(parsed_rubric)
+        
+        # Check for explicit solution approach indicators in the code
+        identified_approach = self._check_explicit_approach_indicators(clean_solution, approach_identifiers)
+        
+        # First, try to identify which approach in the rubric the solution follows
+        approach_info = await self._identify_solution_approach(
+            clean_problem, parsed_rubric, clean_solution, model_solution, identified_approach
+        )
+        
+        approach_name = approach_info.get("approach")
+        confidence = approach_info.get("confidence", 0.0)
+        explanation = approach_info.get("explanation", "")
+        
+        # If no approach was identified or confidence is low, generate a custom rubric
+        if not approach_name or approach_name not in parsed_rubric["approaches"] or confidence < 0.4:
+            logger.info(f"No matching approach found in rubric, generating custom rubric (confidence: {confidence})")
+            custom_rubric = await self._generate_custom_rubric(
+                clean_problem, parsed_rubric, clean_solution, model_solution
+            )
+            
+            # Calculate max score from the original rubric marks allocation
+            original_max_scores = [
+                sum(point["marks"] for point in approach["points"])
+                for approach in parsed_rubric["approaches"].values()
+            ]
+            
+            # Use the average of approach scores as target for custom rubric
+            if original_max_scores:
+                target_score = sum(original_max_scores) // len(original_max_scores)
+            else:
+                target_score = sum(point["marks"] for point in custom_rubric["points"])
+            
+            return {
+                "is_custom": True,
+                "approach": "Custom",
+                "custom_rubric": custom_rubric,
+                "explanation": explanation,
+                "original_rubric": parsed_rubric,
+                "max_score": target_score  # Use calculated target score
+            }
+        
+        # Otherwise, return the matching approach from the rubric
+        # Directly use max_score from the parsed approach
+        logger.info(f"Matching approach found: {approach_name} with confidence {confidence}")
+        approach_max_score = get_approach_marks(parsed_rubric, approach_name)
+        logger.info(f"Approach {approach_name} has a maximum score of {approach_max_score}")
+        
+        return {
+            "is_custom": False,
+            "approach": approach_name,
+            "rubric": parsed_rubric["approaches"][approach_name],
+            "explanation": explanation,
+            "original_rubric": parsed_rubric,
+            "max_score": approach_max_score  # Get max score directly from rubric parser
+        }
+    
+    def _extract_approach_identifiers(self, parsed_rubric: Dict[str, Any]) -> Dict[str, List[str]]:
+        """
+        Extract key terms and identifiers for each approach from the rubric
+        
+        Args:
+            parsed_rubric: The parsed rubric structure
+            
+        Returns:
+            Dictionary mapping approach names to lists of key terms
+        """
+        approach_identifiers = {}
+        
+        for approach_name, approach_details in parsed_rubric["approaches"].items():
+            identifiers = []
+            
+            # Add the approach name itself
+            identifiers.append(approach_name)
+            
+            # Add the approach description if available
+            if "name" in approach_details:
+                identifiers.append(approach_details["name"])
+                
+                # Extract key terms from the approach name
+                name_terms = approach_details["name"].lower().split()
+                identifiers.extend([term for term in name_terms if len(term) > 3])
+            
+            # Extract key terms from each rubric point description
+            for point in approach_details.get("points", []):
+                if "description" in point:
+                    desc = point["description"].lower()
+                    
+                    # Look for algorithm names and common implementation strategies
+                    algorithm_terms = [
+                        "linear", "binary", "brute force", "greedy", "dynamic", 
+                        "recursive", "iterative", "divide", "conquer", "loop", 
+                        "search", "tracking", "variable", "pointer", "iteration"
+                    ]
+                    
+                    for term in algorithm_terms:
+                        if term in desc and term not in identifiers:
+                            identifiers.append(term)
+            
+            approach_identifiers[approach_name] = identifiers
+        
+        return approach_identifiers
+    
+    def _check_explicit_approach_indicators(self, code: str, approach_identifiers: Dict[str, List[str]]) -> Optional[str]:
+        """
+        Check for explicit comments or indicators in the code that identify the approach
+        
+        Args:
+            code: The student code
+            approach_identifiers: Dictionary of approach identifiers
+            
+        Returns:
+            The identified approach name or None
+        """
+        # Extract comments from the code
+        comments = []
+        
+        # Extract multiline comments
+        multiline_pattern = r'/\*.*?\*/'
+        multiline_comments = re.findall(multiline_pattern, code, re.DOTALL)
+        comments.extend(multiline_comments)
+        
+        # Extract single line comments
+        singleline_pattern = r'//.*?$'
+        singleline_comments = re.findall(singleline_pattern, code, re.MULTILINE)
+        comments.extend(singleline_comments)
+        
+        # Join all comments
+        comment_text = ' '.join(comments).lower()
+        
+        # Check for approach indicators in comments
+        for approach_name, identifiers in approach_identifiers.items():
+            for identifier in identifiers:
+                if identifier.lower() in comment_text:
+                    return approach_name
+            
+            # Also check if the approach name itself (e.g., "Solution 1") is explicitly mentioned in the code
+            if approach_name in code:
+                return approach_name
+        
+        return None
+    
+    async def _identify_solution_approach(
+        self, 
+        problem_statement: str, 
+        parsed_rubric: Dict[str, Any], 
+        solution_code: str,
+        model_solution: Optional[str] = None,
+        identified_approach: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Identify which approach in the rubric the solution follows.
+        
+        Args:
+            problem_statement: The problem statement
+            parsed_rubric: The parsed rubric structure
+            solution_code: The student's solution code
+            model_solution: Optional model solution
+            identified_approach: Optional pre-identified approach
+            
+        Returns:
+            Dict with approach name, confidence, and explanation
+        """
+        # Extract approach descriptions to provide to the agent
+        approach_descriptions = []
+        for approach_name, approach_details in parsed_rubric["approaches"].items():
+            description = f"{approach_name}: {approach_details['name']}\n"
+            # Add the point descriptions to help the agent understand the approach better
+            for point in approach_details["points"]:
+                description += f"  - {point['description']} [{point['marks']} marks]\n"
+            approach_descriptions.append(description)
+        
+        # Create a prompt for the approach identification
+        approach_hint = f"\nNOTE: Based on code analysis, the solution may use {identified_approach}." if identified_approach else ""
+        
+        approach_identification_prompt = f"""
+        You are an expert code evaluator specializing in identifying programming approaches.
+
+        PROBLEM STATEMENT:
+        ```
+        {problem_statement}
+        ```
+
+        POSSIBLE APPROACHES FROM RUBRIC:
+        {nl.join(approach_descriptions)}
+
+        STUDENT SOLUTION:
+        ```
+        {solution_code}
+        ```
+
+        {"MODEL SOLUTION:" + nl + "```" + nl + model_solution + nl + "```" + nl if model_solution else ""}
+        {approach_hint}
+
+        INSTRUCTIONS:
+        1. Analyze the student's solution carefully, focusing on the algorithm and implementation style
+        2. Compare it with each approach described in the rubric
+        3. Determine which approach the solution most closely follows
+        4. Consider algorithm characteristics like time complexity, space usage, and implementation pattern
+        5. Look for key differentiating features that distinguish each approach
+        6. If no approach is a good match, indicate that no matching approach was found
+
+        RESPONSE FORMAT:
+        Return a JSON object with the following structure:
+        {{
+            "approach": "Solution X",   
+            "confidence": 0.0-1.0,    
+            "explanation": "Detailed explanation of why this approach was chosen or why no approach matches"
+        }}
+        Note: If no approach matches, use "None" for the approach value.
+
+        Only return the JSON object and nothing else.
+        """
+        try:
+            # Query the LLM using the imported function
+            response = await query_llm(approach_identification_prompt, temperature=0.2)
+            
+            # Extract JSON from response (in case the LLM adds text before or after)
+            json_match = re.search(r'(\{.*\})', response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+                result = json.loads(json_str)
+            else:
+                result = json.loads(response)
+            
+            # If identified_approach exists and LLM is uncertain (low confidence), consider the identified approach
+            if identified_approach and result.get("confidence", 0) < 0.6 and result.get("approach") != identified_approach:
+                logger.info(f"LLM selected {result.get('approach')} with confidence {result.get('confidence')}, but code analysis suggests {identified_approach}")
+                
+                # If LLM confidence is very low, use the identified approach instead
+                if result.get("confidence", 0) < 0.3:
+                    result["approach"] = identified_approach
+                    result["confidence"] = 0.6  # Set a reasonable confidence level
+                    result["explanation"] += f" [Note: This selection was influenced by explicit approach indicators in the code]"
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error identifying solution approach: {str(e)}", exc_info=True)
+            # If LLM approach identification fails but we have identified approach, use that
+            if identified_approach:
+                logger.info(f"Falling back to identified approach: {identified_approach}")
+                return {
+                    "approach": identified_approach,
+                    "confidence": 0.5,
+                    "explanation": f"Code analysis suggests the solution implements {identified_approach}. LLM identification failed with error: {str(e)}"
+                }
+            return {
+                "approach": None,
+                "confidence": 0.0,
+                "explanation": f"Error during approach identification: {str(e)}"
+            }
+    
+    async def _generate_custom_rubric(
+        self, 
+        problem_statement: str, 
+        parsed_rubric: Dict[str, Any], 
+        solution_code: str,
+        model_solution: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate a custom rubric based on the solution when no matching approach is found.
+        
+        Args:
+            problem_statement: The problem statement
+            parsed_rubric: The parsed rubric structure
+            solution_code: The student's solution code
+            model_solution: Optional model solution
+            
+        Returns:
+            Custom rubric structure
+        """
+        # Calculate target total marks based on existing approaches
+        original_max_scores = [
+            sum(point["marks"] for point in approach["points"])
+            for approach in parsed_rubric["approaches"].values()
+        ]
+        
+        if original_max_scores:
+            target_score = sum(original_max_scores) // len(original_max_scores)
+        else:
+            target_score = 5  # Reasonable default if no original scores available
+        
+        # Create a prompt for custom rubric generation
+        custom_rubric_prompt = f"""
+    You are an expert code evaluator responsible for creating fair assessment rubrics.
+
+    PROBLEM STATEMENT:
+    ```
+    {problem_statement}
+    ```
+
+    ORIGINAL RUBRIC:
+    ```
+    {json.dumps(parsed_rubric, indent=2)}
+    ```
+
+    STUDENT SOLUTION:
+    ```
+    {solution_code}
+    ```
+
+    {"MODEL SOLUTION:" + nl + "```" + nl + model_solution + nl + "```" + nl if model_solution else ""}
+
+    INSTRUCTIONS:
+    1. The student's solution doesn't clearly match any approach in the original rubric
+    2. Create a custom rubric specifically for this solution approach
+    3. Identify 3-5 key aspects of the solution that should be evaluated
+    4. Assign appropriate marks to each aspect based on its importance
+    5. The total marks should add up to exactly {target_score}
+    6. Try to maintain the same evaluation style as the original rubric
+    7. Your rubric should assess the correctness and quality of implementation
+
+    RESPONSE FORMAT:
+    Return a JSON object with the following structure:
+    {{
+        "name": "Custom Approach: [Brief description of approach]",
+        "points": [
+        {{
+            "id": "custom_1",
+            "description": "Description of first evaluation point",
+            "marks": 2
+        }},
+        ]
+    }}
+
+    Only return the JSON object and nothing else.
+    """
+
+        try:
+            # Query the LLM using the imported function
+            response = await query_llm(custom_rubric_prompt, temperature=0.3)
+            
+            # Extract JSON from response
+            json_match = re.search(r'(\{.*\})', response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+                custom_rubric = json.loads(json_str)
+            else:
+                custom_rubric = json.loads(response)
+            
+            # Validate the total marks - ensure they add up to target_score
+            custom_score = sum(point["marks"] for point in custom_rubric["points"])
+            
+            if custom_score != target_score:
+                logger.warning(f"Custom rubric score ({custom_score}) differs from target ({target_score})")
+                # Adjust the points if needed to match target_score exactly
+                if len(custom_rubric["points"]) > 0:
+                    diff = target_score - custom_score
+                    point_to_adjust = custom_rubric["points"][0]
+                    point_to_adjust["marks"] += diff
+                    logger.info(f"Adjusted first rubric point by {diff} to match target score")
+            
+            return custom_rubric
+            
+        except Exception as e:
+            logger.error(f"Error generating custom rubric: {str(e)}", exc_info=True)
+            
+            # Return a basic fallback rubric with correct total marks
+            return {
+                "name": "Fallback Approach (Error occurred during custom rubric generation)",
+                "points": [
+                    {
+                        "id": "fallback_1",
+                        "description": "Overall correctness of solution",
+                        "marks": target_score - 2
+                    },
+                    {
+                        "id": "fallback_2",
+                        "description": "Code quality and organization",
+                        "marks": 2
+                    }
+                ]
+            }
+
+    async def format_rubric_for_evaluation(self, extracted_rubric: Dict[str, Any]) -> str:
+        """
+        Format the extracted rubric information for use in evaluation.
+        
+        Args:
+            extracted_rubric: The extracted rubric information
+            
+        Returns:
+            Formatted rubric text for evaluation
+        """
+        if extracted_rubric["is_custom"]:
+            # Format custom rubric
+            rubric_info = extracted_rubric["custom_rubric"]
+            result = [f"# Custom Evaluation Approach: {rubric_info['name']}"]
+            
+            for i, point in enumerate(rubric_info["points"]):
+                result.append(f"{i+1}. {point['description']} [{point['marks']} marks]")
+                
+        else:
+            # Format standard rubric
+            approach = extracted_rubric["approach"]
+            rubric_info = extracted_rubric["rubric"]
+            result = [f"# {approach}: {rubric_info['name']}"]
+            
+            for i, point in enumerate(rubric_info["points"]):
+                result.append(f"{i+1}. {point['description']} [{point['marks']} marks]")
+        
+        return "\n".join(result)

@@ -1,16 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Button } from "../components/ui/button";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "../components/ui/tabs";
-import { ScrollArea } from "../components/ui/scroll-area";
-import { Textarea } from "../components/ui/textarea";
-import { Badge } from "../components/ui/badge";
+import { Button } from "./ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { ScrollArea } from "./ui/scroll-area";
+import { Textarea } from "./ui/textarea";
+import { Badge } from "./ui/badge";
 import {
   ChevronLeft,
   ChevronRight,
@@ -24,291 +19,214 @@ import {
   TestTube,
   FileOutput,
 } from "lucide-react";
-import { questions } from "../data/sample-questions";
 import type { Question, TestCase, Submission } from "../types";
-import { db } from "../lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { toast } from "react-hot-toast";
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { testCases } from "../data/test-cases";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../components/ui/dialog";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { authService } from "../services/auth";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "../components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
-import { cn } from "../lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
+} from "./ui/dialog";
 
 interface PromptEditorProps {
-  initialQuestion?: Question;
+  initialQuestion: Question;
 }
 
-// Memoized submission sorting and filtering
-function useProcessedSubmissions(submissions: Submission[]) {
-  return useMemo(() => {
-    return submissions
-      .filter(
-        (submission) =>
-          submission.username &&
-          submission.username !== "Anonymous" &&
-          (submission.code || submission.prompt) &&
-          submission.passed
-      )
-      .sort((a, b) => {
-        // Calculate weighted scores (70% difference, 30% attempts)
-        const aScore =
-          (100 - Math.abs(a.studentScore - a.aiScore)) * 0.7 +
-          (100 / (a.attempts || 1)) * 0.3;
-        const bScore =
-          (100 - Math.abs(b.studentScore - b.aiScore)) * 0.7 +
-          (100 / (b.attempts || 1)) * 0.3;
-        return bScore - aScore; // Higher score is better
-      });
-  }, [submissions]);
-}
-
-// Score difference indicator component
-function ScoreDifference({
-  difference,
-  attempts,
-}: {
-  difference: number;
-  attempts: number;
-}) {
-  const color = useMemo(() => {
-    if (difference <= 5) return "text-green-500";
-    if (difference <= 10) return "text-yellow-500";
-    return "text-red-500";
-  }, [difference]);
-
-  return (
-    <div className="flex items-center gap-2">
-      <span className={cn("font-medium", color)}>{difference}</span>
-      <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className={cn(
-            "h-full rounded-full transition-all",
-            difference <= 5
-              ? "bg-green-500"
-              : difference <= 10
-              ? "bg-yellow-500"
-              : "bg-red-500"
-          )}
-          style={{ width: `${100 - Math.min(100, difference)}%` }}
-        />
-      </div>
-      <span className="text-xs text-muted-foreground ml-2">
-        ({attempts} attempt{attempts !== 1 ? "s" : ""})
-      </span>
-    </div>
-  );
-}
-
-// Helper function to calculate solved questions by difficulty
-function getSolvedQuestionCounts(submissions: Submission[], username: string) {
-  // Get all passed submissions for this user
-  const userSubmissions = submissions.filter(
-    (s) => s.username === username && s.passed
-  );
-
-  // Track unique solved questions
-  const solvedQuestions = new Map<number, string>();
-  userSubmissions.forEach((s) => {
-    if (!solvedQuestions.has(s.questionId)) {
-      solvedQuestions.set(s.questionId, s.questionDifficulty);
-    }
-  });
-
-  // Count by difficulty
-  const difficulties = Array.from(solvedQuestions.values());
-  return {
-    easy: difficulties.filter((d) => d === "Easy").length,
-    medium: difficulties.filter((d) => d === "Medium").length,
-    hard: difficulties.filter((d) => d === "Hard").length,
-    total: difficulties.length,
-  };
+interface CodeSubmission {
+  username: string;
+  studentScore: number;
+  aiScore: number;
+  feedback: string;
+  code: string;
+  timestamp: string;
+  questionId: string;
 }
 
 export function PromptEditor({ initialQuestion }: PromptEditorProps) {
-  const router = useRouter();
-  const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(
-    initialQuestion
-      ? questions.findIndex((q) => q.id === initialQuestion.id)
-      : 0
-  );
+  const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0);
+  const [questions, setQuestions] = React.useState<Question[]>([
+    initialQuestion,
+  ]);
+  const [isLoadingQuestions, setIsLoadingQuestions] = React.useState(false);
   const [prompt, setPrompt] = React.useState("");
   const [selectedTestCase, setSelectedTestCase] =
     React.useState<TestCase | null>(null);
   const [testResult, setTestResult] = React.useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submissionError, setSubmissionError] = React.useState<string | null>(
+    null
+  );
+  const [submissions, setSubmissions] = React.useState<CodeSubmission[]>([]);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = React.useState(false);
+  const [selectedCategory, setSelectedCategory] = React.useState<string | null>(
+    null
+  );
+  const [mainTab, setMainTab] = React.useState("question");
+  const [bottomTab, setBottomTab] = React.useState("rubric");
+  const [isSolutionUnlocked, setIsSolutionUnlocked] = React.useState(false);
   const [isEvaluating, setIsEvaluating] = React.useState(false);
-  const [hasPassedTest, setHasPassedTest] = React.useState(false);
-  const [showSolution, setShowSolution] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState("question");
-  const [submissions, setSubmissions] = React.useState<Submission[]>([]);
-  const [expandedSubmission, setExpandedSubmission] = useState<number | null>(
-    null
-  );
-  const [showSubmitDialog, setShowSubmitDialog] = React.useState(false);
-  const [studentScore, setStudentScore] = React.useState("");
-  const [currentUser, setCurrentUser] = React.useState<{ name: string } | null>(
-    null
-  );
-  const [expandedFeedback, setExpandedFeedback] = React.useState<number | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(false);
+  const [showSelfEvalDialog, setShowSelfEvalDialog] = React.useState(false);
+  const [selfScore, setSelfScore] = React.useState<number>(0);
+  const [username, setUsername] = React.useState<string | null>(null);
+  const [selectedSubmission, setSelectedSubmission] =
+    React.useState<CodeSubmission | null>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = React.useState(false);
+  const [showLoginDialog, setShowLoginDialog] = React.useState(false);
+  const [bestScore, setBestScore] = React.useState(0);
+  const [userRank, setUserRank] = React.useState(0);
 
-  const currentQuestion = questions[currentQuestionIndex];
+  // Fetch username on mount
+  React.useEffect(() => {
+    const fetchUsername = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        const data = await response.json();
 
-  // Use memoized submissions
-  const validSubmissions = useProcessedSubmissions(submissions);
+        if (data.username) {
+          setUsername(data.username);
+          setShowLoginDialog(false);
+        } else {
+          setUsername(null);
+          setShowLoginDialog(true);
+        }
+      } catch (error) {
+        console.error("Error fetching username:", error);
+        setUsername(null);
+        setShowLoginDialog(true);
+      }
+    };
 
-  // Memoize current user's best submission
-  const userBestSubmission = useMemo(() => {
-    if (!currentUser) return null;
-    return validSubmissions.find((s) => s.username === currentUser.name);
-  }, [validSubmissions, currentUser]);
-
-  useEffect(() => {
-    const user = authService.getCurrentUser();
-    if (!user) {
-      toast.error("Please log in to submit solutions");
-      return;
-    }
-    setCurrentUser(user);
+    fetchUsername();
   }, []);
+
+  // Fetch questions from the backend
+  React.useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const response = await fetch("/api/questions");
+        if (!response.ok) {
+          throw new Error("Failed to fetch questions");
+        }
+        const data = await response.json();
+        setQuestions(data);
+      } catch (error) {
+        console.error("Error fetching questions:", error);
+      } finally {
+        setIsLoadingQuestions(false);
+      }
+    };
+
+    fetchQuestions();
+  }, []);
+
+  const categories = React.useMemo(() => {
+    const uniqueCategories = new Set(questions.map((q) => q.category));
+    return Array.from(uniqueCategories).filter(Boolean);
+  }, [questions]);
+
+  const filteredQuestions = React.useMemo(() => {
+    if (!selectedCategory) return questions;
+    return questions.filter((q) => q.category === selectedCategory);
+  }, [questions, selectedCategory]);
+
+  const currentQuestion = React.useMemo(
+    () => filteredQuestions[currentQuestionIndex] || initialQuestion,
+    [filteredQuestions, currentQuestionIndex, initialQuestion]
+  );
 
   const handlePrevQuestion = () => {
     setCurrentQuestionIndex((prev) => (prev > 0 ? prev - 1 : prev));
     setPrompt("");
     setTestResult(null);
     setSelectedTestCase(null);
+    setIsSolutionUnlocked(false);
   };
 
   const handleNextQuestion = () => {
     setCurrentQuestionIndex((prev) =>
-      prev < questions.length - 1 ? prev + 1 : prev
+      prev < filteredQuestions.length - 1 ? prev + 1 : prev
     );
     setPrompt("");
     setTestResult(null);
     setSelectedTestCase(null);
+    setIsSolutionUnlocked(false);
   };
 
   const handleRandomQuestion = () => {
-    const randomIndex = Math.floor(Math.random() * questions.length);
+    const randomIndex = Math.floor(Math.random() * filteredQuestions.length);
     setCurrentQuestionIndex(randomIndex);
     setPrompt("");
     setTestResult(null);
     setSelectedTestCase(null);
+    setIsSolutionUnlocked(false);
   };
 
   const handleRunTest = async () => {
-    if (!selectedTestCase || !prompt) {
-      setTestResult("Please select a test case and enter your code");
+    if (!prompt) {
+      setTestResult("Please enter your code first");
       return;
     }
 
     setIsEvaluating(true);
-    setTestResult("Evaluating code...");
-    setShowSolution(false);
-
+    setTestResult("Evaluating your code...");
     try {
-      const response = await fetch("/api/evaluate-code", {
+      const response = await fetch("/api/evaluate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           code: prompt,
-          testCase: selectedTestCase,
-          language: "javascript",
+          questionId: currentQuestion.id,
+          category: currentQuestion.category,
+          title: currentQuestion.title,
+          rubric: currentQuestion.rubric,
+          modelSolution: currentQuestion.modelSolution,
         }),
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
-        setHasPassedTest(result.passed);
-
-        const formattedResult = `Test Results:
-
-Input:
-${selectedTestCase.input}
-
-Expected Output:
-${selectedTestCase.expectedOutput}
-
-Your Output:
-${result.output}
-
-${result.passed ? "✅ Test Passed!" : "❌ Test Failed!"}
-${result.error ? `\nError: ${result.error}` : ""}`;
-
-        setTestResult(formattedResult);
-      } else {
-        throw new Error(result.error || "Code evaluation failed");
+      if (!response.ok) {
+        throw new Error("Failed to evaluate code");
       }
+
+      const result = await response.json();
+      setTestResult(`Feedback:\n${result.feedback}`);
     } catch (error) {
-      setTestResult(
-        `Error: ${error instanceof Error ? error.message : "An error occurred"}`
-      );
-      setHasPassedTest(false);
+      console.error("Error evaluating code:", error);
+      setTestResult("Failed to evaluate code. Please try again.");
     } finally {
       setIsEvaluating(false);
     }
   };
 
-  const handleSubmitClick = () => {
-    setShowSubmitDialog(true);
-  };
-
-  const handleSubmitConfirm = async () => {
-    if (!hasPassedTest || !prompt || !selectedTestCase) {
-      toast.error("Please pass the test first!");
-      return;
-    }
-
-    // Check if code is too similar to solution only if user has seen the solution
-    const fullTestCase = testCases[selectedTestCase.id];
-    if (showSolution && prompt.trim() === fullTestCase?.solution?.trim()) {
-      toast.error(
-        "Cannot submit the exact solution after viewing it. Please write your own code."
+  const handleSubmit = async () => {
+    if (!prompt || !username) {
+      setSubmissionError(
+        !username ? "Please log in first" : "Please write your prompt"
       );
       return;
     }
 
-    if (!currentUser) {
-      toast.error("Please log in to submit solutions");
+    // Show self-evaluation dialog instead of submitting directly
+    setShowSelfEvalDialog(true);
+  };
+
+  const handleFinalSubmit = async () => {
+    if (!username) {
+      setSubmissionError("Unable to submit: No username available");
       return;
     }
 
-    const score = parseInt(studentScore);
-    if (isNaN(score) || score < 0 || score > 100) {
-      toast.error("Please enter a valid score between 0 and 100");
-      return;
-    }
+    setIsSubmitting(true);
+    setSubmissionError(null);
+    setTestResult("⏳ Submitting your code for evaluation...");
 
     try {
       const response = await fetch("/api/submissions", {
@@ -319,89 +237,221 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
         body: JSON.stringify({
           code: prompt,
           questionId: currentQuestion.id,
-          testCase: selectedTestCase,
-          passed: hasPassedTest,
-          username: currentUser.name,
-          studentScore: score,
+          studentScore: selfScore,
+          username: username,
         }),
       });
 
-      const result = await response.json();
-
-      if (result.success) {
-        toast.success(`Submitted successfully!`);
-        setPrompt("");
-        setSelectedTestCase(null);
-        setHasPassedTest(false);
-        setTestResult(null);
-        setStudentScore("");
-        setShowSubmitDialog(false);
-        fetchSubmissions();
-      } else {
-        toast.error(result.error || "Submission failed");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to submit solution");
       }
+
+      const data = await response.json();
+
+      // Close dialog and switch to submissions tab
+      setShowSelfEvalDialog(false);
+      setMainTab("submissions");
+
+      // Add the new submission to the list with the correct username
+      const newSubmission = {
+        ...data,
+        username: username,
+      };
+      setSubmissions((prev) => [newSubmission, ...prev]);
+
+      // Format and show evaluation results
+      const formattedFeedback =
+        typeof data.feedback === "object"
+          ? Object.entries(data.feedback)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join("\n")
+          : data.feedback;
+
+      setTestResult(
+        `✅ Evaluation completed!\n\n` +
+          `AI Score: ${data.aiScore}\n\n` +
+          `Feedback:\n${formattedFeedback}`
+      );
+      setBottomTab("results");
     } catch (error) {
       console.error("Submission error:", error);
-      toast.error("Error submitting code");
+      setSubmissionError(
+        error instanceof Error ? error.message : "Failed to save submission"
+      );
+      setTestResult(
+        "❌ " +
+          (error instanceof Error
+            ? error.message
+            : "Failed to evaluate submission")
+      );
+      setShowSelfEvalDialog(false);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const fetchSubmissions = useCallback(async () => {
+  // Helper function to format feedback for display
+  const formatFeedback = (feedback: any): string => {
+    if (!feedback) return "No feedback available";
+
+    if (typeof feedback === "object" && feedback !== null) {
+      // If feedback is an array of objects
+      if (Array.isArray(feedback)) {
+        return feedback
+          .map((item) => {
+            if (typeof item === "object") {
+              return Object.entries(item)
+                .map(([key, value]) => `${key}: ${value}`)
+                .join(", ");
+            }
+            return String(item);
+          })
+          .join("\n");
+      }
+      // If feedback is a single object
+      return Object.entries(feedback)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join("\n");
+    }
+    // If feedback is a string or any other type
+    return String(feedback);
+  };
+
+  // Update the submissions rendering
+  const renderSubmissionFeedback = (feedback: any) => {
+    const formattedFeedback = formatFeedback(feedback);
+    return (
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-muted-foreground truncate">
+          {formattedFeedback.split("\n")[0]}
+        </p>
+      </div>
+    );
+  };
+
+  // Update the fetchSubmissions function with new ranking logic
+  const fetchSubmissions = async () => {
+    setIsLoadingSubmissions(true);
     try {
-      const submissionsRef = collection(db, "submissions");
-      const q = query(
-        submissionsRef,
-        where("questionId", "==", currentQuestion.id)
+      const response = await fetch(
+        `/api/submissions?questionId=${currentQuestion.id}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch submissions");
+      }
+      const data = await response.json();
+
+      // Sort submissions by absolute difference between student and AI scores
+      const sortedSubmissions = data.sort(
+        (a: CodeSubmission, b: CodeSubmission) => {
+          const diffA = Math.abs(a.studentScore - a.aiScore);
+          const diffB = Math.abs(b.studentScore - b.aiScore);
+          return diffA - diffB; // Lower difference = higher rank
+        }
       );
 
-      const querySnapshot = await getDocs(q);
-      const submissionsData = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        console.log("Raw submission data:", data); // Debug log for raw data
-        return {
-          submissionNumber: data.submissionNumber,
-          rating: data.rating,
-          promptText: data.promptText,
-          code: data.code || data.prompt,
-          timestamp: data.timestamp,
-          username: data.username || "Anonymous",
-          studentScore: Number(data.studentScore) || 0,
-          aiScore: Number(data.aiScore) || 0,
-          aiFeedback: data.aiFeedback || "",
-          absoluteDifference: Number(data.absoluteDifference) || 0,
-          questionId: Number(data.questionId),
-          passed: Boolean(data.passed),
-          testCaseInput: data.testCaseInput,
-          testCaseOutput: data.testCaseOutput,
-        };
-      }) as Submission[];
+      setSubmissions(sortedSubmissions);
 
-      console.log("Processed submissions:", submissionsData); // Debug log for processed data
-      setSubmissions(submissionsData);
+      // Update user's best score and rank for this question
+      if (username) {
+        const userSubmissions = sortedSubmissions.filter(
+          (s: CodeSubmission) => s.username === username
+        );
+        if (userSubmissions.length > 0) {
+          // Find submission with smallest difference
+          const bestUserSubmission = userSubmissions.reduce(
+            (best: CodeSubmission, current: CodeSubmission) => {
+              const bestDiff = Math.abs(best.studentScore - best.aiScore);
+              const currentDiff = Math.abs(
+                current.studentScore - current.aiScore
+              );
+              return currentDiff < bestDiff ? current : best;
+            },
+            userSubmissions[0]
+          );
 
-      // Debug log for validSubmissions
-      console.log(
-        "Valid submissions:",
-        submissionsData.filter(
-          (submission) =>
-            submission.username &&
-            submission.username !== "Anonymous" &&
-            (submission.code || submission.prompt) &&
-            submission.passed
-        )
-      );
+          setBestScore(bestUserSubmission.studentScore);
+          // Find rank of the best submission
+          const userRank =
+            sortedSubmissions.findIndex(
+              (s: CodeSubmission) =>
+                s.username === username &&
+                Math.abs(s.studentScore - s.aiScore) ===
+                  Math.abs(
+                    bestUserSubmission.studentScore - bestUserSubmission.aiScore
+                  )
+            ) + 1;
+          setUserRank(userRank);
+        } else {
+          setBestScore(0);
+          setUserRank(0);
+        }
+      }
     } catch (error) {
       console.error("Error fetching submissions:", error);
-      toast.error("Failed to load submissions");
+    } finally {
+      setIsLoadingSubmissions(false);
     }
-  }, [currentQuestion.id]);
+  };
 
-  useEffect(() => {
-    fetchSubmissions();
-  }, [fetchSubmissions]);
+  // Update useEffect to fetch submissions when question changes
+  React.useEffect(() => {
+    if (mainTab === "submissions" && currentQuestion?.id) {
+      fetchSubmissions();
+    }
+  }, [currentQuestion?.id, mainTab]);
 
-  const handleBackToDashboard = () => {
-    router.push("/problems");
+  // Handle tab changes separately
+  const handleMainTabChange = (value: string) => {
+    setMainTab(value);
+    if (value === "submissions") {
+      fetchSubmissions();
+    }
+  };
+
+  const handleBottomTabChange = (value: string) => {
+    setBottomTab(value);
+  };
+
+  const handleShowSolution = () => {
+    setIsSolutionUnlocked(true);
+    setMainTab("solutions");
+  };
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const newUsername = formData.get("username") as string;
+
+    if (!newUsername?.trim()) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username: newUsername }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Login failed");
+      }
+
+      const data = await response.json();
+      setUsername(data.username);
+      setShowLoginDialog(false);
+
+      // Refresh submissions after login
+      if (mainTab === "submissions") {
+        fetchSubmissions();
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+    }
   };
 
   return (
@@ -410,19 +460,37 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
       <header className="flex items-center justify-between px-4 h-14 border-b">
         <div className="flex items-center space-x-4">
           <GraduationCap className="w-6 h-6" />
-          <div className="flex items-center space-x-2">
-            <span
-              className="font-semibold cursor-pointer hover:text-primary transition-colors"
-              onClick={handleBackToDashboard}
+          <div className="flex items-center space-x-4">
+            <span className="font-semibold">Problems</span>
+            <Select
+              value={selectedCategory || "all"}
+              onValueChange={(value) =>
+                setSelectedCategory(value === "all" ? null : value)
+              }
+              disabled={isLoadingQuestions}
             >
-              Problems
-            </span>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue
+                  placeholder={
+                    isLoadingQuestions ? "Loading..." : "All Categories"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <div className="flex items-center space-x-1">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handlePrevQuestion}
-                disabled={currentQuestionIndex === 0}
+                disabled={currentQuestionIndex === 0 || isLoadingQuestions}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -430,7 +498,10 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
                 variant="ghost"
                 size="icon"
                 onClick={handleNextQuestion}
-                disabled={currentQuestionIndex === questions.length - 1}
+                disabled={
+                  currentQuestionIndex === filteredQuestions.length - 1 ||
+                  isLoadingQuestions
+                }
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -438,6 +509,7 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
                 variant="ghost"
                 size="icon"
                 onClick={handleRandomQuestion}
+                disabled={isLoadingQuestions}
               >
                 <Shuffle className="h-4 w-4" />
               </Button>
@@ -450,26 +522,20 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
             size="sm"
             className="gap-2"
             onClick={handleRunTest}
-            disabled={!selectedTestCase || !prompt || isEvaluating}
+            disabled={!prompt}
           >
-            {isEvaluating ? (
-              "Evaluating..."
-            ) : (
-              <>
-                <Play className="w-4 h-4" />
-                Run
-              </>
-            )}
+            <Play className="w-4 h-4" />
+            Run
           </Button>
           <Button
-            variant="default"
+            variant="outline"
             size="sm"
             className="gap-2"
-            onClick={handleSubmitClick}
-            disabled={!hasPassedTest}
+            onClick={handleSubmit}
+            disabled={!prompt || isSubmitting}
           >
             <Upload className="w-4 h-4" />
-            Submit
+            {isSubmitting ? "Submitting..." : "Submit"}
           </Button>
         </div>
       </header>
@@ -480,19 +546,25 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
           {/* Left Panel */}
           <div className="w-1/2 border-r">
             <Tabs
-              defaultValue="question"
-              value={activeTab}
-              onValueChange={setActiveTab}
+              value={mainTab}
               className="h-full flex flex-col"
+              onValueChange={handleMainTabChange}
             >
               <TabsList className="px-4 py-2 border-b justify-start">
                 <TabsTrigger value="question" className="gap-2">
                   <FileQuestion className="w-4 h-4" />
                   Question
                 </TabsTrigger>
-                <TabsTrigger value="solutions" className="gap-2">
+                <TabsTrigger
+                  value="solutions"
+                  className="gap-2"
+                  disabled={!isSolutionUnlocked}
+                >
                   <Lightbulb className="w-4 h-4" />
-                  Solutions
+                  Solutions{" "}
+                  {!isSolutionUnlocked && (
+                    <span className="ml-1 text-xs">(Locked)</span>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="submissions" className="gap-2">
                   <Users className="w-4 h-4" />
@@ -501,281 +573,264 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
               </TabsList>
               <TabsContent value="question" className="flex-1 p-4">
                 <ScrollArea className="h-full">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold">
-                      {currentQuestion.title}
-                    </h2>
-                    <Badge
-                      variant={
-                        currentQuestion.difficulty === "Easy"
-                          ? "secondary"
-                          : currentQuestion.difficulty === "Medium"
-                          ? "default"
-                          : "destructive"
-                      }
-                    >
-                      {currentQuestion.difficulty}
-                    </Badge>
-                  </div>
-                  <p className="text-muted-foreground mb-4">
-                    {currentQuestion.description}
-                  </p>
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">Requirements:</h3>
-                    <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                      {currentQuestion.requirements.map((req, index) => (
-                        <li key={index}>{req}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  {isLoadingQuestions ? (
+                    <div className="flex items-center justify-center h-full">
+                      <span className="text-muted-foreground">
+                        Loading questions...
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold">
+                          {currentQuestion.title}
+                        </h2>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">
+                            {currentQuestion.category}
+                          </Badge>
+                          <Badge
+                            variant={
+                              currentQuestion.difficulty === "Easy"
+                                ? "secondary"
+                                : currentQuestion.difficulty === "Medium"
+                                ? "default"
+                                : "destructive"
+                            }
+                          >
+                            {currentQuestion.difficulty}
+                          </Badge>
+                        </div>
+                      </div>
+                      <p className="text-muted-foreground mb-4 whitespace-pre-wrap">
+                        {currentQuestion.description}
+                      </p>
+                      {currentQuestion.requirements &&
+                        currentQuestion.requirements.length > 0 && (
+                          <div className="space-y-4">
+                            <h3 className="font-semibold">Requirements:</h3>
+                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                              {currentQuestion.requirements.map(
+                                (req, index) => (
+                                  <li key={index}>{req}</li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        )}
+                    </>
+                  )}
                 </ScrollArea>
               </TabsContent>
               <TabsContent value="solutions" className="flex-1 p-4">
                 <ScrollArea className="h-full">
-                  {showSolution && selectedTestCase ? (
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Solution</h3>
-                      <pre className="whitespace-pre-wrap text-sm p-4 bg-muted rounded-lg">
-                        {selectedTestCase.solution}
-                      </pre>
+                  {!isSolutionUnlocked ? (
+                    <div className="flex flex-col items-center justify-center h-full space-y-4">
+                      <Lightbulb className="w-12 h-12 text-muted-foreground" />
+                      <p className="text-muted-foreground text-center">
+                        Solutions are locked. Click the "Show Solution" button
+                        after running your code to view the solution.
+                      </p>
                     </div>
                   ) : (
-                    <div className="text-center text-muted-foreground pt-8">
-                      You can see the 'Solution' by clicking on 'Show Solution'
-                      after failing a Test Case.
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Model Solution</h3>
+                      <div className="border rounded-lg p-4">
+                        <pre className="text-sm whitespace-pre-wrap font-mono bg-muted p-4 rounded-md">
+                          {currentQuestion.modelSolution ||
+                            "No solution available"}
+                        </pre>
+                      </div>
+                      <div className="mt-4">
+                        <h4 className="font-semibold mb-2">
+                          Solution Explanation
+                        </h4>
+                        <p className="text-muted-foreground">
+                          {currentQuestion.solutionExplanation ||
+                            "No explanation available"}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </ScrollArea>
               </TabsContent>
               <TabsContent value="submissions" className="flex-1 p-4">
                 <ScrollArea className="h-full">
-                  {isLoading ? (
-                    <div className="flex items-center justify-center h-32">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                  {isLoadingSubmissions ? (
+                    <div className="flex items-center justify-center h-full">
+                      <span className="text-muted-foreground">
+                        Loading submissions...
+                      </span>
                     </div>
-                  ) : validSubmissions.length > 0 ? (
-                    <div className="space-y-6">
-                      {/* User's Best Submission */}
-                      {userBestSubmission && (
-                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                          <h3 className="font-semibold mb-2">
-                            Your Best Submission
-                            </h3>
-                          <div className="grid grid-cols-3 gap-4">
-                            <div>
-                              <div className="text-sm text-muted-foreground">
-                                Your Score
-                              </div>
-                              <div className="text-2xl font-bold">
-                                {userBestSubmission.studentScore}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-sm text-muted-foreground">
-                                AI Score
-                              </div>
-                              <div className="text-2xl font-bold">
-                                {userBestSubmission.aiScore}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-sm text-muted-foreground">
-                                Rank
-                              </div>
-                              <div className="text-2xl font-bold">
-                                #
-                                {validSubmissions.findIndex(
-                                  (s) => s.username === currentUser!.name
-                                ) + 1}
-                              </div>
-                            </div>
-                              </div>
-                            </div>
-                          )}
-
-                      {/* Leaderboard */}
-                      <div className="bg-card rounded-lg border shadow-sm">
-                        <div className="p-4 border-b">
-                          <h3 className="font-semibold">Leaderboard</h3>
-                        </div>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableCell className="font-medium w-16">
-                                Rank
-                              </TableCell>
-                              <TableCell className="font-medium">
-                                Username
-                              </TableCell>
-                              <TableCell className="font-medium text-center">
-                                Scores
-                              </TableCell>
-                              <TableCell className="font-medium">
-                                Difference
-                              </TableCell>
-                              <TableCell className="font-medium">
-                                Feedback
-                              </TableCell>
-                              <TableCell className="font-medium">
-                                Solved Questions
-                              </TableCell>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {validSubmissions.map((submission, index) => (
-                              <React.Fragment key={index}>
-                                <TableRow
-                                  className={cn(
-                                    currentUser?.name === submission.username &&
-                                      "bg-primary/5",
-                                    "transition-colors hover:bg-muted/50 cursor-pointer"
-                                  )}
-                                  onClick={() =>
-                                    setExpandedFeedback(
-                                      expandedFeedback === index ? null : index
-                                    )
-                                  }
-                                >
-                                  <TableCell className="font-medium">
-                                    {index === 0
-                                      ? "🥇"
-                                      : index === 1
-                                      ? "🥈"
-                                      : index === 2
-                                      ? "🥉"
-                                      : index + 1}
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-2">
-                                      {submission.username}
-                                      {currentUser?.name ===
-                                        submission.username && (
-                                        <Badge variant="secondary">You</Badge>
-                                      )}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex justify-center items-center gap-2">
-                                      <div className="text-center">
-                                        <div className="font-medium">
-                                          {submission.studentScore}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                          Student
-                                        </div>
-                                      </div>
-                                      <div className="text-muted-foreground">
-                                        vs
-                                      </div>
-                                      <div className="text-center">
-                                        <div className="font-medium">
-                                          {submission.aiScore}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                          AI
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <ScoreDifference
-                                      difference={Math.abs(
-                                        submission.studentScore -
-                                          submission.aiScore
-                                      )}
-                                      attempts={submission.attempts || 1}
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center justify-between">
-                                      <span className="truncate max-w-[200px]">
-                                        {submission.aiFeedback}
-                                      </span>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation(); // Prevent row click
-                                          setExpandedFeedback(
-                                            expandedFeedback === index
-                                              ? null
-                                              : index
-                                          );
-                                        }}
-                                      >
-                                        {expandedFeedback === index
-                                          ? "Less"
-                                          : "More"}
-                                      </Button>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="text-sm">
-                                      {(() => {
-                                        const counts = getSolvedQuestionCounts(
-                                          submissions,
-                                          submission.username
-                                        );
-                                        return `E: ${counts.easy} | M: ${counts.medium} | H: ${counts.hard}`;
-                                      })()}
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                                <AnimatePresence>
-                                  {expandedFeedback === index && (
-                                    <motion.tr
-                                      initial={{ opacity: 0, height: 0 }}
-                                      animate={{ opacity: 1, height: "auto" }}
-                                      exit={{ opacity: 0, height: 0 }}
-                                      transition={{ duration: 0.2 }}
-                                    >
-                                      <TableCell colSpan={5} className="p-0">
-                                        <motion.div
-                                          initial={{ opacity: 0 }}
-                                          animate={{ opacity: 1 }}
-                                          exit={{ opacity: 0 }}
-                                          className="bg-muted/30 p-4 mx-4 my-2 rounded-lg"
-                                        >
-                                          <div className="space-y-4">
-                                            <div>
-                                              <Label>AI Feedback</Label>
-                                              <div className="mt-2 p-4 bg-muted rounded-lg">
-                                                <p className="text-sm whitespace-pre-wrap">
-                                                  {submission.aiFeedback}
-                                                </p>
-                                              </div>
-                                            </div>
-                                            {currentUser?.name ===
-                                              submission.username && (
-                                              <div className="mt-4 border-t pt-4">
-                                                <Label>Your Code</Label>
-                                                <pre className="mt-2 p-4 bg-slate-950 rounded-lg overflow-x-auto">
-                                                  <code className="text-white text-sm whitespace-pre-wrap">
-                                                    {submission.code ||
-                                                      "undefined"}
-                                                  </code>
-                                                </pre>
-                                              </div>
-                                            )}
-                                          </div>
-                                        </motion.div>
-                                      </TableCell>
-                                    </motion.tr>
-                                  )}
-                                </AnimatePresence>
-                              </React.Fragment>
-                            ))}
-                          </TableBody>
-                        </Table>
+                  ) : submissions.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full space-y-4">
+                      <Users className="w-12 h-12 text-muted-foreground" />
+                      <div className="text-center space-y-2">
+                        <p className="text-muted-foreground">
+                          No submissions yet
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Be the first to submit a solution!
+                        </p>
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-12">
-                      <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="font-semibold mb-2">No submissions yet</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Be the first to submit your solution!
-                      </p>
+                    <div className="space-y-6">
+                      {/* Best Submission Section */}
+                      {username && (
+                        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-8 border">
+                          <h3 className="text-xl font-semibold mb-6">
+                            Your Best Submission
+                          </h3>
+                          <div className="grid grid-cols-3 gap-12">
+                            <div className="text-center">
+                              <p className="text-sm font-medium mb-2">
+                                Your Score
+                              </p>
+                              <p className="text-4xl font-bold text-blue-500">
+                                {bestScore}
+                              </p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-sm font-medium mb-2">
+                                AI Score
+                              </p>
+                              <p className="text-4xl font-bold text-purple-500">
+                                {submissions[0]?.aiScore || "-"}
+                              </p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-sm font-medium mb-2">
+                                Your Rank
+                              </p>
+                              <div className="flex items-center justify-center">
+                                <p className="text-4xl font-bold text-green-500">
+                                  #{userRank || "-"}
+                                </p>
+                                {userRank <= 3 && userRank > 0 && (
+                                  <span className="ml-2 text-2xl">
+                                    {userRank === 1
+                                      ? "🥇"
+                                      : userRank === 2
+                                      ? "🥈"
+                                      : "🥉"}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Leaderboard Section */}
+                      <div>
+                        <h3 className="text-xl font-semibold mb-4">
+                          Leaderboard for {currentQuestion.title}
+                        </h3>
+                        <div className="rounded-lg border overflow-hidden">
+                          <div className="grid grid-cols-5 gap-4 p-4 bg-muted/50 font-medium text-sm">
+                            <div>RANK</div>
+                            <div>USERNAME</div>
+                            <div>SCORES</div>
+                            <div>DIFFERENCE</div>
+                            <div>FEEDBACK</div>
+                          </div>
+                          <div className="divide-y">
+                            {submissions.map((submission, index) => (
+                              <div
+                                key={index}
+                                className={`grid grid-cols-5 gap-4 p-4 items-center hover:bg-muted/30 transition-colors ${
+                                  submission.username === username
+                                    ? "bg-blue-500/5"
+                                    : ""
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">
+                                    #{index + 1}
+                                  </span>
+                                  {index === 0 && (
+                                    <span className="text-xl">🥇</span>
+                                  )}
+                                  {index === 1 && (
+                                    <span className="text-xl">🥈</span>
+                                  )}
+                                  {index === 2 && (
+                                    <span className="text-xl">🥉</span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">
+                                    {submission.username}
+                                  </span>
+                                  {submission.username === username && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="bg-blue-500/10 text-blue-500"
+                                    >
+                                      You
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-baseline gap-1">
+                                    <span className="font-bold text-lg">
+                                      {submission.studentScore}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      Self
+                                    </span>
+                                  </div>
+                                  <span className="text-muted-foreground">
+                                    vs
+                                  </span>
+                                  <div className="flex items-baseline gap-1">
+                                    <span className="font-bold text-lg">
+                                      {submission.aiScore}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      AI
+                                    </span>
+                                  </div>
+                                </div>
+                                <div>
+                                  <span
+                                    className={`font-medium ${
+                                      Math.abs(
+                                        submission.studentScore -
+                                          submission.aiScore
+                                      ) === 0
+                                        ? "text-green-500"
+                                        : "text-yellow-500"
+                                    }`}
+                                  >
+                                    {Math.abs(
+                                      submission.studentScore -
+                                        submission.aiScore
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  {renderSubmissionFeedback(
+                                    submission.feedback
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="hover:bg-blue-500/10 hover:text-blue-500"
+                                    onClick={() => {
+                                      setSelectedSubmission(submission);
+                                      setShowDetailsDialog(true);
+                                    }}
+                                  >
+                                    Details
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </ScrollArea>
@@ -794,7 +849,9 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
             <div className="flex-1 p-4 bg-background">
               <Textarea
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setPrompt(e.target.value)
+                }
                 placeholder="Write your code here..."
                 className="h-full min-h-[200px] font-mono"
               />
@@ -804,77 +861,72 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
 
         {/* Bottom Panel */}
         <div className="border-t h-64">
-          <Tabs defaultValue="testcases">
+          <Tabs value={bottomTab} onValueChange={handleBottomTabChange}>
             <TabsList className="px-4 py-2 border-b justify-start">
-              <TabsTrigger value="testcases" className="gap-2">
+              <TabsTrigger value="rubric" className="gap-2">
                 <TestTube className="w-4 h-4" />
-                Test Cases
+                Evaluation Rubric
               </TabsTrigger>
               <TabsTrigger value="results" className="gap-2">
                 <FileOutput className="w-4 h-4" />
                 Results
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="testcases" className="p-4">
+            <TabsContent value="rubric" className="p-4">
               <ScrollArea className="h-48">
                 <div className="space-y-4">
-                  {currentQuestion.testCases.map((testCase, index) => (
-                    <div key={index} className="border rounded-lg p-4">
-                      <Button
-                        variant={
-                          selectedTestCase?.id === testCase
-                            ? "default"
-                            : "outline"
-                        }
-                        className="w-full justify-start mb-2"
-                        onClick={() => {
-                          const fullTestCase = testCases[testCase];
-                          setSelectedTestCase(fullTestCase || null);
-                        }}
-                      >
-                        Test Case {index + 1}
-                      </Button>
-                      <div className="text-sm">
-                        <strong>Input:</strong>
-                        <pre className="mt-1 p-2 bg-muted rounded">
-                          {testCases[testCase]?.input}
-                        </pre>
-                        <strong className="mt-2 block">Expected Output:</strong>
-                        <pre className="mt-1 p-2 bg-muted rounded">
-                          {testCases[testCase]?.expectedOutput}
-                        </pre>
-                      </div>
+                  {currentQuestion.rubric ? (
+                    <div className="border rounded-lg p-4">
+                      <h3 className="font-semibold mb-2">
+                        Evaluation Criteria
+                      </h3>
+                      <pre className="text-sm whitespace-pre-wrap">
+                        {currentQuestion.rubric}
+                      </pre>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <span className="text-muted-foreground">
+                        No rubric available
+                      </span>
+                    </div>
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>
             <TabsContent value="results" className="p-4">
               <ScrollArea className="h-48">
                 <div className="space-y-4">
-                  <pre className="text-sm">
-                    {testResult ||
-                      "Run your prompt against a test case to see results..."}
+                  <pre className="text-sm text-muted-foreground bg-muted p-4 rounded-md">
+                    {submissionError ? (
+                      <span className="text-red-500">{submissionError}</span>
+                    ) : (
+                      testResult ||
+                      "Run your code to see evaluation feedback..."
+                    )}
                   </pre>
-                  {testResult && testResult.includes("❌ Test Failed!") && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="bg-green-500 hover:bg-green-600 text-white"
-                      onClick={() => {
-                        setShowSolution(true);
-                        setActiveTab("solutions");
-                        const solutionsTab = document.querySelector(
-                          'button[value="solutions"]'
-                        ) as HTMLElement;
-                        if (solutionsTab) {
-                          solutionsTab.click();
-                        }
-                      }}
-                    >
-                      Show Solution
-                    </Button>
-                  )}
+                  {testResult &&
+                    !submissionError &&
+                    !isEvaluating &&
+                    !testResult.includes("Evaluating") && (
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground text-center italic">
+                          To see your score, please submit your code using the
+                          Submit button above.
+                        </p>
+                        <div className="flex justify-center">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="gap-2 bg-green-600 hover:bg-green-700 text-white w-full max-w-[200px]"
+                            onClick={handleShowSolution}
+                          >
+                            <Lightbulb className="w-4 h-4" />
+                            Show Solution
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -882,40 +934,160 @@ ${result.error ? `\nError: ${result.error}` : ""}`;
         </div>
       </div>
 
-      {/* Submit Dialog */}
-      <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Submit Your Solution</DialogTitle>
-            <DialogDescription>
-              Please enter your self-reported score before submitting.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="score">Self-reported Score (0-100)</Label>
-              <Input
-                id="score"
+      {/* Self-evaluation dialog */}
+      {showSelfEvalDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div className="bg-background p-6 rounded-lg shadow-lg max-w-md w-full space-y-4">
+            <h3 className="text-lg font-semibold">Self Evaluation</h3>
+            <p className="text-sm text-muted-foreground">
+              Based on the evaluation rubric, how would you score your solution?
+              (0-100)
+            </p>
+            <div className="space-y-4">
+              <input
                 type="number"
                 min="0"
                 max="100"
-                value={studentScore}
-                onChange={(e) => setStudentScore(e.target.value)}
-                placeholder="Enter your score"
+                value={selfScore}
+                onChange={(e) => setSelfScore(Number(e.target.value))}
+                className="w-full p-2 border rounded-md"
               />
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSelfEvalDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={handleFinalSubmit}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Submitting..." : "Submit"}
+                </Button>
+              </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowSubmitDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSubmitConfirm}>Submit</Button>
-          </DialogFooter>
+        </div>
+      )}
+
+      {/* Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Submission Details</DialogTitle>
+            <DialogDescription>
+              Detailed feedback and analysis of the submission
+            </DialogDescription>
+          </DialogHeader>
+          {selectedSubmission && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold mb-1">Submission Time</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(selectedSubmission.timestamp).toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-1">Question ID</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedSubmission.questionId}
+                  </p>
+                </div>
+              </div>
+              {selectedSubmission.username === username ? (
+                <div>
+                  <h4 className="font-semibold mb-1">Code Submitted</h4>
+                  <pre className="bg-muted p-4 rounded-lg text-sm overflow-auto">
+                    {selectedSubmission.code}
+                  </pre>
+                </div>
+              ) : (
+                <div className="bg-muted/30 p-4 rounded-lg border border-muted-foreground/20">
+                  <p className="text-sm text-muted-foreground text-center">
+                    🔒 Code is private and only visible to the submitter
+                  </p>
+                </div>
+              )}
+              <div>
+                <h4 className="font-semibold mb-1">Detailed Feedback</h4>
+                <div className="bg-muted p-4 rounded-lg">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Self Score</span>
+                      <span className="text-blue-500 font-bold">
+                        {selectedSubmission.studentScore}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">AI Score</span>
+                      <span className="text-purple-500 font-bold">
+                        {selectedSubmission.aiScore}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Difference</span>
+                      <span
+                        className={`font-bold ${
+                          Math.abs(
+                            selectedSubmission.studentScore -
+                              selectedSubmission.aiScore
+                          ) === 0
+                            ? "text-green-500"
+                            : "text-yellow-500"
+                        }`}
+                      >
+                        {Math.abs(
+                          selectedSubmission.studentScore -
+                            selectedSubmission.aiScore
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {formatFeedback(selectedSubmission.feedback)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
+
+      {/* Login Dialog */}
+      {showLoginDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background p-6 rounded-lg shadow-lg w-96">
+            <h2 className="text-xl font-semibold mb-4">Login Required</h2>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="username"
+                  className="block text-sm font-medium mb-1"
+                >
+                  Username
+                </label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  className="w-full p-2 border rounded-md"
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button type="submit" variant="default">
+                  Login
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

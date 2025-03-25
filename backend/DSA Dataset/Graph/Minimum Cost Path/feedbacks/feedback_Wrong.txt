@@ -1,0 +1,27 @@
+"Selected rubric"  
+Solution 2: BFS with Priority Structure
+
+"Feedback with marks"  
+1. Set up a priority structure to store cells sorted by accumulated cost. [0 marks]  
+   - The submission does not use a priority structure to store cells sorted by accumulated cost. Instead, it uses a dynamic programming approach with arrays `prev` and `curr`.
+
+2. Create a structure to track processed cells. [0 marks]  
+   - The submission does not explicitly track processed cells. It uses arrays to store the minimum cost to reach each cell.
+
+3. Start from the initial cell and explore in order of minimum accumulated cost. [0 marks]  
+   - The submission does not explore cells in order of minimum accumulated cost using a priority structure. It calculates costs iteratively using dynamic programming.
+
+4. Check neighboring cells and update costs if better paths are found. [1 mark]  
+   - The submission correctly checks neighboring cells (up and left) and updates costs if a cheaper path is found.
+
+5. Add cells to priority structure based on updated costs. [0 marks]  
+   - The submission does not add cells to a priority structure. It updates costs directly in the arrays.
+
+6. Properly handle grid boundaries. [1 mark]  
+   - The submission correctly handles grid boundaries by checking conditions `i > 0` and `j > 0`.
+
+7. Return the minimum cost when reaching the destination cell. [0 marks]  
+   - The submission returns the minimum cost stored in `prev[n-1]`, but this does not align with the BFS approach using a priority structure.
+
+"Marks Scored out of total marks"  
+2 out of 7 marks

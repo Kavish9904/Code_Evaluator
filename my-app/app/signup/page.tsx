@@ -23,7 +23,7 @@ export default function SignUpPage() {
     setError("");
     try {
       authService.signup({ name, email, password });
-      router.push("/");
+      router.push("/dashboard");
     } catch (err) {
       setError((err as Error).message);
     }
@@ -94,7 +94,7 @@ export default function SignUpPage() {
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          © 2025 PromptMaster. All rights reserved.
+          © 2025 CodeEvaluator. All rights reserved.
         </p>
       </footer>
     </div>

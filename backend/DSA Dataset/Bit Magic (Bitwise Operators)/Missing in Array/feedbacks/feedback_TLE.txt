@@ -1,0 +1,18 @@
+"Selected rubric"  
+Solution 5: Linear Search Approach
+
+"Feedback with marks"  
+1. Create a boolean array or hash set to mark present elements [1 mark]  
+   - The student has correctly used a `HashSet` to mark present elements. [1 mark]
+
+2. Iterate through the input array and mark each element as present [1 mark]  
+   - The student iterates through the array and adds each element to the `HashSet`, marking them as present. [1 mark]
+
+3. Scan through the boolean array or hash set to find the first unmarked element [1 mark]  
+   - The student correctly scans through the range from 1 to `arr.length + 1` to find the first missing element. [1 mark]
+
+4. Return the missing number correctly [1 mark]  
+   - The student correctly returns the missing number when it is not found in the `HashSet`. [1 mark]
+
+"Marks Scored out of total marks"  
+4 out of 4 marks

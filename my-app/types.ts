@@ -1,5 +1,5 @@
 export interface TestCase {
-  id: number;
+  id: string;
   input: string;
   expectedOutput: string;
   explanation?: string;
@@ -7,33 +7,25 @@ export interface TestCase {
 }
 
 export interface Question {
-  id: number;
+  id: string;
   title: string;
   description: string;
   difficulty: "Easy" | "Medium" | "Hard";
-  requirements: string[];
-  testCases: number[];
-  sampleInput?: string;
-  sampleOutput?: string;
-  constraints?: string[];
+  category: string;
+  requirements?: string[];
+  testCases?: string[];
+  rubric: string;
+  modelSolution: string;
+  solutionExplanation?: string;
 }
 
 export interface Submission {
-  submissionNumber: number;
-  rating?: number;
-  promptText?: string;
-  prompt?: string;
-  code?: string;
-  timestamp: any;
+  id: string;
   username: string;
+  questionId: string;
+  code: string;
   studentScore: number;
   aiScore: number;
-  aiFeedback: string;
-  absoluteDifference: number;
-  questionId: number;
-  questionDifficulty: "Easy" | "Medium" | "Hard";
-  passed: boolean;
-  testCaseInput?: string;
-  testCaseOutput?: string;
-  attempts?: number;
+  feedback?: string;
+  timestamp: string;
 }

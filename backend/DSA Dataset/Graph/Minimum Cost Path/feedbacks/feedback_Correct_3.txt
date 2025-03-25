@@ -1,0 +1,27 @@
+"Selected rubric"  
+Solution 2: BFS with Priority Structure
+
+"Feedback with marks"  
+1. Set up a priority structure to store cells sorted by accumulated cost. [1 mark]  
+   - The solution uses a `PriorityQueue` to store cells based on their accumulated cost, which is correct. [1 mark]
+
+2. Create a structure to track processed cells. [1 mark]  
+   - The solution uses a `visited` boolean array to track processed cells, which is correct. [1 mark]
+
+3. Start from the initial cell and explore in order of minimum accumulated cost. [1 mark]  
+   - The solution starts from the initial cell (0,0) and explores based on the minimum accumulated cost using the priority queue. [1 mark]
+
+4. Check neighboring cells and update costs if better paths are found. [1 mark]  
+   - The solution checks all four possible neighboring cells and updates the costs if a better path is found. [1 mark]
+
+5. Add cells to priority structure based on updated costs. [1 mark]  
+   - The solution adds neighboring cells to the priority queue with updated costs. [1 mark]
+
+6. Properly handle grid boundaries. [1 mark]  
+   - The solution correctly handles grid boundaries by checking indices before accessing neighboring cells. [1 mark]
+
+7. Return the minimum cost when reaching the destination cell. [1 mark]  
+   - The solution returns the minimum cost when the destination cell (n-1, n-1) is reached. [1 mark]
+
+"Marks Scored out of total marks"  
+7 out of 7 marks

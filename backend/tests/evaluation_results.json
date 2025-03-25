@@ -1,0 +1,34 @@
+{
+  "standard_evaluation": {
+    "score": 5,
+    "max_score": 17,
+    "feedback": {
+      "1": {
+        "points_awarded": 1,
+        "max_points": 1,
+        "feedback": "The student initializes pointers 'low' and 'high' to track the search range."
+      },
+      "2": {
+        "points_awarded": 1,
+        "max_points": 1,
+        "feedback": "The binary search loop is implemented with the correct termination condition (low <= high)."
+      },
+      "3": {
+        "points_awarded": 0,
+        "max_points": 2,
+        "feedback": "The check for the first occurrence of 1 is not correctly implemented. The condition to return 'low' does not ensure it is the first occurrence."
+      },
+      "4": {
+        "points_awarded": 2,
+        "max_points": 2,
+        "feedback": "The search range is correctly adjusted based on the comparison results (high = mid - 1 when arr[mid] == 1)."
+      },
+      "5": {
+        "points_awarded": 1,
+        "max_points": 1,
+        "feedback": "The code correctly returns -1 when no 1 is found (if low == arr.length)."
+      }
+    },
+    "error": null
+  }
+}
