@@ -16,7 +16,7 @@ interface Question {
 
 export async function GET() {
   try {
-    // During build time, return empty array
+    // During build time or if API URL is not available, return empty array
     if (
       process.env.NODE_ENV === "production" &&
       process.env.NEXT_PHASE === "build"
@@ -24,15 +24,18 @@ export async function GET() {
       return NextResponse.json([]);
     }
 
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiUrl) {
+      console.error("NEXT_PUBLIC_API_URL is not defined");
+      return NextResponse.json([]);
+    }
+
     // Forward the request to the backend API
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/questions`,
-      {
-        headers: {
-          Accept: "application/json",
-        },
-      }
-    );
+    const response = await fetch(`${apiUrl}/questions`, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
 
     if (!response.ok) {
       const error = await response.json();
