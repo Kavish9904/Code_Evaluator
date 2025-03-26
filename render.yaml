@@ -3,9 +3,11 @@ services:
     name: code-evaluator-frontend
     env: node
     buildCommand: cd my-app && npm install && npm run build
-    startCommand: cd my-app && npm start
+    startCommand: cd my-app && npm run start
     staticPublishPath: my-app/.next
     envVars:
+      - key: NODE_ENV
+        value: production
       - key: NEXT_PUBLIC_API_URL
         value: https://code-evaluator-backend.onrender.com
       - key: NEXT_PUBLIC_FIREBASE_API_KEY
