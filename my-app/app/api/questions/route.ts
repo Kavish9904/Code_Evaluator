@@ -16,12 +16,23 @@ interface Question {
 
 export async function GET() {
   try {
+    // During build time, return empty array
+    if (
+      process.env.NODE_ENV === "production" &&
+      process.env.NEXT_PHASE === "build"
+    ) {
+      return NextResponse.json([]);
+    }
+
     // Forward the request to the backend API
-    const response = await fetch("http://localhost:8000/questions", {
-      headers: {
-        Accept: "application/json",
-      },
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/questions`,
+      {
+        headers: {
+          Accept: "application/json",
+        },
+      }
+    );
 
     if (!response.ok) {
       const error = await response.json();
