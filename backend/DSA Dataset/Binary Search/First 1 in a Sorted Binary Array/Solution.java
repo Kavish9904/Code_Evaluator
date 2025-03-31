@@ -1,1 +1,0 @@
-/Users/akhand/Documents/CS_Course/SOP_LLM/LLMEvaluator/LLMEvaluator/DSA Dataset/Binary Search/First 1 in a Sorted Binary Array
