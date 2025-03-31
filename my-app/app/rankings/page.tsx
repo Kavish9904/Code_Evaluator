@@ -42,6 +42,9 @@ interface UserScore {
       score: number;
       difficulty: string;
       pointDifference: number;
+      maxScore: number;
+      studentScore: number;
+      aiScore: number;
     };
   };
   uniqueQuestions: number;
@@ -85,19 +88,25 @@ export default function GlobalRankingsPage() {
   }, []);
 
   const calculateScore = (
-    pointDifference: number,
-    difficulty: string
+    studentScore: number,
+    aiScore: number,
+    difficulty: string,
+    maxScore: number
   ): number => {
-    const baseScore = Math.max(0, 100 - pointDifference); // Ensure score doesn't go negative
+    // Calculate the difference between student and AI scores
+    const pointDifference = Math.abs(studentScore - aiScore);
+    // Calculate base score (100% - difference percentage)
+    const baseScore = Math.max(0, 100 - (pointDifference / maxScore) * 100);
+    // Apply difficulty multiplier
     const multiplier =
       difficulty === "Hard" ? 3 : difficulty === "Medium" ? 2 : 1;
-    return baseScore * multiplier;
+    return Math.round(baseScore * multiplier);
   };
 
   const fetchSubmissions = async () => {
     try {
       const response = await fetch("/api/submissions", {
-        cache: "no-store", // Prevent caching
+        cache: "no-store",
       });
       if (!response.ok) throw new Error("Failed to fetch submissions");
       const submissions = await response.json();
@@ -108,7 +117,9 @@ export default function GlobalRankingsPage() {
         const username = sub.username;
         const questionId = sub.questionId;
         const difficulty = sub.questionDifficulty || "Easy";
-        const pointDifference = Math.abs(sub.studentScore - sub.aiScore);
+        const studentScore = sub.studentScore || 0;
+        const aiScore = sub.aiScore || 0;
+        const maxScore = sub.maxScore || 100;
 
         if (!userQuestionMap[username]) {
           userQuestionMap[username] = {
@@ -116,11 +127,15 @@ export default function GlobalRankingsPage() {
             totalScore: 0,
             questionScores: {},
             uniqueQuestions: 0,
-            accuracy: 0,
           };
         }
 
-        const score = calculateScore(pointDifference, difficulty);
+        const score = calculateScore(
+          studentScore,
+          aiScore,
+          difficulty,
+          maxScore
+        );
 
         if (
           !userQuestionMap[username].questionScores[questionId] ||
@@ -129,7 +144,10 @@ export default function GlobalRankingsPage() {
           userQuestionMap[username].questionScores[questionId] = {
             score,
             difficulty,
-            pointDifference,
+            pointDifference: Math.abs(studentScore - aiScore),
+            maxScore,
+            studentScore,
+            aiScore,
           };
         }
       });
@@ -140,22 +158,12 @@ export default function GlobalRankingsPage() {
           0
         );
 
-        // Calculate accuracy
+        // Calculate accuracy based on score differences
         const accuracy =
-          (Object.values(user.questionScores).reduce(
-            (sum, q) =>
-              sum +
-              q.score /
-                (100 *
-                  (q.difficulty === "Hard"
-                    ? 3
-                    : q.difficulty === "Medium"
-                    ? 2
-                    : 1)),
+          Object.values(user.questionScores).reduce(
+            (sum, q) => sum + (100 - (q.pointDifference / q.maxScore) * 100),
             0
-          ) /
-            Object.keys(user.questionScores).length) *
-          100;
+          ) / Object.keys(user.questionScores).length;
 
         return {
           ...user,
@@ -412,16 +420,23 @@ export default function GlobalRankingsPage() {
                         {userScore.uniqueQuestions}
                       </TableCell>
                       <TableCell className="text-center">
-                        {userScore.accuracy}%
-                      </TableCell>
-                      <TableCell className="text-right">
                         <span
                           className={`font-bold ${getDifficultyColor(
-                            userScore.totalScore
+                            userScore.accuracy || 0
                           )}`}
                         >
-                          {userScore.totalScore.toFixed(0)}
+                          {(userScore.accuracy || 0).toFixed(1)}%
                         </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-col items-end">
+                          <span className="font-bold">
+                            {userScore.totalScore.toFixed(0)}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            {userScore.uniqueQuestions} questions
+                          </span>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

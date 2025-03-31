@@ -3,38 +3,49 @@ export type OtherType = {
 };
 
 export interface TestCase {
-  id: number;
+  id: string;
   input: string;
   expectedOutput: string;
-  solution?: string;
+  isHidden: boolean;
 }
 
 export interface Question {
-  id: number;
+  id: string;
   title: string;
   description: string;
-  difficulty: "Easy" | "Medium" | "Hard";
-  requirements: string[];
-  testCases: number[];
+  difficulty: string;
+  category: string;
+  requirements?: string[];
+  testCases?: TestCase[];
+  rubric?: RubricItem[];
+  modelSolution?: string;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  bio?: string;
+  role: "user" | "admin";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RubricItem {
+  id: string;
+  description: string;
+  points: number;
 }
 
 export interface Submission {
-  id?: string;
-  submissionNumber?: number;
-  rating?: number;
-  promptText?: string;
+  id: string;
+  userId: string;
+  questionId: string;
   code: string;
-  timestamp: string;
-  username: string;
-  studentScore: number;
-  aiScore: number;
-  aiFeedback?: string;
-  absoluteDifference?: number;
-  questionId: number;
-  questionDifficulty?: string;
-  passed?: boolean;
-  testCaseInput?: string;
-  testCaseOutput?: string;
-  prompt?: string;
+  language: string;
+  status: "pending" | "running" | "completed" | "failed";
+  score?: number;
   feedback?: string;
+  createdAt: string;
+  updatedAt: string;
 }

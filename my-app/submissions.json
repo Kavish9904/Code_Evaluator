@@ -43,5 +43,258 @@
     "timestamp": "2025-03-25T05:26:17.037Z",
     "aiScore": 0,
     "feedback": "1: [object Object]\n2: [object Object]\n3: [object Object]\n4: [object Object]\n5: [object Object]\n6: [object Object]"
+  },
+  {
+    "code": "whatjsdhfkjzbh",
+    "questionId": "Arrays/Largest product",
+    "studentScore": 7,
+    "username": "Kane",
+    "timestamp": "2025-03-26T05:09:45.575Z",
+    "aiScore": 0,
+    "feedback": "1: [object Object]\n2: [object Object]\n3: [object Object]\n4: [object Object]\n5: [object Object]\n6: [object Object]"
+  },
+  {
+    "code": "class Solution {\n    public int findMaxProduct(int[] arr, int k) {\n        // code here\n        int max =0;\n        for(int i=0;i<arr.length;i++){\n            int j=i, multi=1,c=0;\n            while(j<arr.length&&c<k){\n                multi*=arr[j++];\n                c++;\n            }\n            if(c==k){\n                max = Math.max(max,multi);\n            }\n        }\n        return max;\n    }\n}",
+    "questionId": "Arrays/Largest product",
+    "studentScore": 0,
+    "username": "Kane",
+    "timestamp": "2025-03-26T05:12:45.651Z",
+    "aiScore": 0,
+    "feedback": "1: [object Object]\n2: [object Object]\n3: [object Object]\n4: [object Object]\n5: [object Object]\n6: [object Object]"
+  },
+  {
+    "code": "class Solution {\n    public int findMaxProduct(int[] arr, int k) {\n        // code here\n        int max =0;\n        for(int i=0;i<arr.length;i++){\n            int j=i, multi=1,c=0;\n            while(j<arr.length&&c<k){\n                multi*=arr[j++];\n                c++;\n            }\n            if(c==k){\n                max = Math.max(max,multi);\n            }\n        }\n        return max;\n    }\n}",
+    "questionId": "Arrays/Largest product",
+    "studentScore": 5,
+    "username": "Kane",
+    "timestamp": "2025-03-26T05:16:50.723Z",
+    "aiScore": 0,
+    "feedback": "1: [object Object]\n2: [object Object]\n3: [object Object]\n4: [object Object]\n5: [object Object]\n6: [object Object]"
+  },
+  {
+    "code": "class Solution {\n    public int findMaxProduct(int[] arr, int k) {\n        // code here\n        int max =0;\n        for(int i=0;i<arr.length;i++){\n            int j=i, multi=1,c=0;\n            while(j<arr.length&&c<k){\n                multi*=arr[j++];\n                c++;\n            }\n            if(c==k){\n                max = Math.max(max,multi);\n            }\n        }\n        return max;\n    }\n}",
+    "questionId": "Arrays/Largest product",
+    "studentScore": 0,
+    "username": "Kane",
+    "timestamp": "2025-03-27T05:49:52.521Z",
+    "aiScore": 0,
+    "maxScore": 7,
+    "absoluteDifference": 7,
+    "questionDifficulty": "Medium",
+    "feedback": "{\"1\":{\"points_awarded\":0,\"max_points\":1,\"feedback\":\"The implementation does not initialize variables for window boundaries (i for start, j for end) as required by the sliding window approach. Instead, it uses a nested loop structure.\"},\"2\":{\"points_awarded\":0,\"max_points\":1,\"feedback\":\"The variable 'max' is initialized to 0, which is not appropriate for tracking the maximum product, especially if all products are negative.\"},\"3\":{\"points_awarded\":0,\"max_points\":2,\"feedback\":\"The implementation does not maintain a sliding window of size k; it recalculates the product from scratch for each starting index.\"},\"4\":{\"points_awarded\":0,\"max_points\":1,\"feedback\":\"The maximum product is only updated after the inner loop, which may lead to unnecessary calculations and does not follow the sliding window logic.\"},\"5\":{\"points_awarded\":0,\"max_points\":1,\"feedback\":\"The implementation does not handle division by the leftmost element when sliding the window, as it does not use a sliding window approach.\"},\"6\":{\"points_awarded\":0,\"max_points\":1,\"feedback\":\"The function does not return the maximum product found correctly due to the issues in the implementation.\"}}"
+  },
+  {
+    "code": "class Solution {\n    public int findMaxProduct(int[] arr, int k) {\n        // code here\n        int max =0;\n        for(int i=0;i<arr.length;i++){\n            int j=i, multi=1,c=0;\n            while(j<arr.length&&c<k){\n                multi*=arr[j++];\n                c++;\n            }\n            if(c==k){\n                max = Math.max(max,multi);\n            }\n        }\n        return max;\n    }\n}",
+    "questionId": "Arrays/Largest product",
+    "studentScore": 1,
+    "username": "Kane",
+    "timestamp": "2025-03-27T05:53:59.041Z",
+    "aiScore": 1,
+    "maxScore": 7,
+    "absoluteDifference": 6,
+    "questionDifficulty": "Medium",
+    "feedback": "{\"1\":{\"points_awarded\":0,\"max_points\":1,\"feedback\":\"The code does not initialize variables for window boundaries (i for start, j for end) correctly as it uses nested loops instead of a sliding window approach.\"},\"2\":{\"points_awarded\":0,\"max_points\":1,\"feedback\":\"The maximum product is initialized to 0, which may not be appropriate if all products are negative; it should be initialized to Integer.MIN_VALUE.\"},\"3\":{\"points_awarded\":0,\"max_points\":2,\"feedback\":\"The implementation does not maintain a window of size k efficiently; it uses nested loops instead of the sliding window technique.\"},\"4\":{\"points_awarded\":0,\"max_points\":1,\"feedback\":\"The maximum product is not updated correctly as the logic does not implement a sliding window.\"},\"5\":{\"points_awarded\":0,\"max_points\":1,\"feedback\":\"There is no division by the leftmost element as the sliding window logic is not implemented.\"},\"6\":{\"points_awarded\":1,\"max_points\":1,\"feedback\":\"The function returns the maximum product found, which is the only aspect correctly implemented.\"}}"
+  },
+  {
+    "code": "class Solution {\n    public int findMaxProduct(int[] arr, int k) {\n        // code here\n        int max =0;\n        for(int i=0;i<arr.length;i++){\n            int j=i, multi=1,c=0;\n            while(j<arr.length&&c<k){\n                multi*=arr[j++];\n                c++;\n            }\n            if(c==k){\n                max = Math.max(max,multi);\n            }\n        }\n        return max;\n    }\n}",
+    "questionId": "Arrays/Largest product",
+    "studentScore": 2,
+    "username": "Kane",
+    "timestamp": "2025-03-27T05:57:02.133Z",
+    "aiScore": 3,
+    "maxScore": 7,
+    "absoluteDifference": 1,
+    "questionDifficulty": "Medium",
+    "feedback": "{\"1\":{\"points_awarded\":0,\"max_points\":1,\"feedback\":\"The implementation does not initialize variables for window boundaries as required by the sliding window approach.\"},\"2\":{\"points_awarded\":1,\"max_points\":1,\"feedback\":\"The variable 'max' is initialized to track the maximum product found.\"},\"3\":{\"points_awarded\":0,\"max_points\":2,\"feedback\":\"The implementation uses nested loops instead of maintaining a sliding window of size k.\"},\"4\":{\"points_awarded\":1,\"max_points\":1,\"feedback\":\"The maximum product is updated correctly when the count of multiplied elements equals k.\"},\"5\":{\"points_awarded\":0,\"max_points\":1,\"feedback\":\"The implementation does not handle division by the leftmost element when sliding the window, as it does not use a sliding window approach.\"},\"6\":{\"points_awarded\":1,\"max_points\":1,\"feedback\":\"The function returns the maximum product found after iterating through the array.\"}}"
+  },
+  {
+    "code": "\n\n// User function Template for Java\n\nclass Solution {\n    public int lastIndex(String s) {\n     for(int i=s.length()-1;i>=0;i--)  {\n      if(s.charAt(i)=='1') \n      {\n          return i;\n      }\n     } \n     return -1;\n    }\n    \n}",
+    "questionId": "Arrays/Last index of One",
+    "studentScore": 5,
+    "username": "Kane",
+    "timestamp": "2025-03-27T06:01:42.909Z",
+    "aiScore": 4,
+    "maxScore": 4,
+    "absoluteDifference": 1,
+    "questionDifficulty": "Medium",
+    "feedback": "{\"1\":{\"points_awarded\":1,\"max_points\":1,\"feedback\":\"The code correctly identifies that it needs to find the index of the last occurrence of '1' in the string.\"},\"2\":{\"points_awarded\":1,\"max_points\":1,\"feedback\":\"The for loop starts from the last index (s.length() - 1) and iterates backwards, which is correct.\"},\"3\":{\"points_awarded\":1,\"max_points\":1,\"feedback\":\"The code returns the index immediately upon finding '1', which satisfies the requirement.\"},\"4\":{\"points_awarded\":1,\"max_points\":1,\"feedback\":\"If no '1' is found, the code correctly returns -1 after the loop completes.\"}}"
+  },
+  {
+    "code": "class FirstOneFinder {\n    public static int findFirstOne(int[] arr) {\n        int low = 0, high = arr.length - 1;\n        int firstIndex = -1;\n\n        while (low <= high) {\n            int mid = low + (high - low) / 2; // Prevents overflow\n\n            if (arr[mid] == 1) {\n                firstIndex = mid;  // Possible answer, but look for an earlier 1\n                high = mid - 1; // Move left\n            } else {\n                low = mid + 1; // Move right\n            }\n        }\n        return firstIndex;\n    }\n\n    public static void main(String[] args) {\n        int[] arr1 = {0, 0, 0, 0, 0, 0, 1, 1, 1, 1};\n        int[] arr2 = {0, 0, 0, 0};\n\n        System.out.println(findFirstOne(arr1)); // Output: 6\n        System.out.println(findFirstOne(arr2)); // Output: -1\n    }\n}\n",
+    "questionId": "1",
+    "studentScore": 11,
+    "username": "Kane",
+    "timestamp": "2025-03-30T13:54:33.405Z",
+    "aiScore": 0,
+    "maxScore": 100,
+    "absoluteDifference": 11,
+    "questionDifficulty": "Medium",
+    "feedback": "No feedback available"
+  },
+  {
+    "code": "class FirstOneFinder {\n    public static int findFirstOne(int[] arr) {\n        int low = 0, high = arr.length - 1;\n        int firstIndex = -1;\n\n        while (low <= high) {\n            int mid = low + (high - low) / 2; // Prevents overflow\n\n            if (arr[mid] == 1) {\n                firstIndex = mid;  // Possible answer, but look for an earlier 1\n                high = mid - 1; // Move left\n            } else {\n                low = mid + 1; // Move right\n            }\n        }\n        return firstIndex;\n    }\n\n    public static void main(String[] args) {\n        int[] arr1 = {0, 0, 0, 0, 0, 0, 1, 1, 1, 1};\n        int[] arr2 = {0, 0, 0, 0};\n\n        System.out.println(findFirstOne(arr1)); // Output: 6\n        System.out.println(findFirstOne(arr2)); // Output: -1\n    }\n}\n",
+    "questionId": "1",
+    "studentScore": 26,
+    "username": "Kane",
+    "timestamp": "2025-03-30T13:58:43.807Z",
+    "aiScore": 7,
+    "maxScore": 7,
+    "absoluteDifference": 19,
+    "questionDifficulty": "Medium",
+    "feedback": {
+      "1": {
+        "points_awarded": 1,
+        "max_points": 1,
+        "feedback": "The pointers 'low' and 'high' are correctly initialized to the start and end of the array respectively."
+      },
+      "2": {
+        "points_awarded": 1,
+        "max_points": 1,
+        "feedback": "The while loop is implemented with the condition 'low <= high', ensuring proper termination of the search."
+      },
+      "3": {
+        "points_awarded": 2,
+        "max_points": 2,
+        "feedback": "The code checks if 'arr[mid] == 1' and updates 'firstIndex' accordingly, ensuring it looks for the first occurrence of 1."
+      },
+      "4": {
+        "points_awarded": 2,
+        "max_points": 2,
+        "feedback": "The search range is correctly adjusted based on the comparison results, with 'high' moved to 'mid - 1' when a 1 is found."
+      },
+      "5": {
+        "points_awarded": 1,
+        "max_points": 1,
+        "feedback": "The function correctly returns 'firstIndex', which will be -1 if no 1s are found, as initialized."
+      }
+    },
+    "status": "completed",
+    "submissionId": 34
+  },
+  {
+    "code": "class FirstOneFinder {\n    public static int findFirstOne(int[] arr) {\n        int low = 0, high = arr.length - 1;\n        int firstIndex = -1;\n\n        while (low <= high) {\n            int mid = low + (high - low) / 2; // Prevents overflow\n\n            if (arr[mid] == 1) {\n                firstIndex = mid;  // Possible answer, but look for an earlier 1\n                high = mid - 1; // Move left\n            } else {\n                low = mid + 1; // Move right\n            }\n        }\n        return firstIndex;\n    }\n\n    public static void main(String[] args) {\n        int[] arr1 = {0, 0, 0, 0, 0, 0, 1, 1, 1, 1};\n        int[] arr2 = {0, 0, 0, 0};\n\n        System.out.println(findFirstOne(arr1)); // Output: 6\n        System.out.println(findFirstOne(arr2)); // Output: -1\n    }\n}\n",
+    "questionId": "1",
+    "studentScore": 6,
+    "username": "Kane",
+    "timestamp": "2025-03-30T14:04:46.786Z",
+    "aiScore": 7,
+    "maxScore": 7,
+    "absoluteDifference": 1,
+    "questionDifficulty": "Medium",
+    "feedback": "Criterion 1:\nPoints: 1/1\nThe pointers 'low' and 'high' are correctly initialized to 0 and arr.length - 1, respectively.\n\nCriterion 2:\nPoints: 1/1\nThe while loop correctly continues as long as 'low' is less than or equal to 'high'.\n\nCriterion 3:\nPoints: 2/2\nThe code checks if 'arr[mid]' is 1 and updates 'firstIndex' accordingly, ensuring it looks for earlier occurrences.\n\nCriterion 4:\nPoints: 2/2\nThe search range is correctly adjusted based on whether 'arr[mid]' is 1 or 0, moving 'high' left or 'low' right as needed.\n\nCriterion 5:\nPoints: 1/1\nThe function returns 'firstIndex', which is -1 if no 1s are found, fulfilling the requirement.\n",
+    "status": "completed",
+    "submissionId": 40
+  },
+  {
+    "code": "class TreeNode {\n    int val;\n    TreeNode left, right;\n\n    TreeNode(int val) {\n        this.val = val;\n        this.left = this.right = null;\n    }\n}\n\nclass BinaryTree {\n    // Function to find the Lowest Common Ancestor (LCA)\n    private TreeNode findLCA(TreeNode root, int a, int b) {\n        if (root == null) return null;\n        if (root.val == a || root.val == b) return root;\n\n        TreeNode leftLCA = findLCA(root.left, a, b);\n        TreeNode rightLCA = findLCA(root.right, a, b);\n\n        if (leftLCA != null && rightLCA != null) return root; // Found LCA\n        return (leftLCA != null) ? leftLCA : rightLCA;\n    }\n\n    // Function to find the level (depth) of a node\n    private int findLevel(TreeNode root, int target, int level) {\n        if (root == null) return -1;\n        if (root.val == target) return level;\n\n        int left = findLevel(root.left, target, level + 1);\n        if (left != -1) return left;\n\n        return findLevel(root.right, target, level + 1);\n    }\n\n    // Function to find the minimum distance between two nodes\n    public int findMinDistance(TreeNode root, int a, int b) {\n        TreeNode lca = findLCA(root, a, b);\n        int d1 = findLevel(lca, a, 0);\n        int d2 = findLevel(lca, b, 0);\n\n        return d1 + d2;\n    }\n\n    public static void main(String[] args) {\n        BinaryTree tree = new BinaryTree();\n\n        TreeNode root = new TreeNode(11);\n        root.left = new TreeNode(22);\n        root.right = new TreeNode(33);\n        root.left.left = new TreeNode(44);\n        root.left.right = new TreeNode(55);\n        root.right.left = new TreeNode(66);\n        root.right.right = new TreeNode(77);\n\n        System.out.println(tree.findMinDistance(root, 77, 22)); // Output: 3\n        System.out.println(tree.findMinDistance(root, 2, 3));  // Output: 2 (if tree was different)\n        System.out.println(tree.findMinDistance(root, 1, 3));  // Output: 1 (if tree was different)\n    }\n}\n",
+    "questionId": "2",
+    "studentScore": 5,
+    "username": "Kane",
+    "timestamp": "2025-03-30T14:15:14.708Z",
+    "aiScore": 12,
+    "maxScore": 12,
+    "absoluteDifference": 7,
+    "questionDifficulty": "Medium",
+    "feedback": "Criterion 1:\nPoints: 1/1\nThe null check for the root node is handled in the findLCA method, returning null if the root is null.\n\nCriterion 2:\nPoints: 1/1\nThe findLCA method recursively searches both left and right subtrees for the LCA.\n\nCriterion 3:\nPoints: 1/1\nThe LCA is determined correctly based on the results of the left and right subtree searches.\n\nCriterion 4:\nPoints: 1/1\nThe method returns the appropriate node when the LCA is found or when both subtrees return non-null.\n\nCriterion 5:\nPoints: 1/1\nThe findLevel method handles null checks by returning -1 if the root is null.\n\nCriterion 6:\nPoints: 1/1\nThe level is returned correctly when the target node is found in the findLevel method.\n\nCriterion 7:\nPoints: 1/1\nThe findLevel method recursively searches both left and right subtrees while incrementing the level.\n\nCriterion 8:\nPoints: 1/1\nThe method returns the appropriate level or -1 based on the search results.\n\nCriterion 9:\nPoints: 1/1\nThe findMinDistance method correctly finds the LCA of the two nodes.\n\nCriterion 10:\nPoints: 1/1\nThe distance from the LCA to the first node is calculated correctly using findLevel.\n\nCriterion 11:\nPoints: 1/1\nThe distance from the LCA to the second node is also calculated correctly.\n\nCriterion 12:\nPoints: 1/1\nThe total distance is returned as the sum of the distances from the LCA to both nodes.\n",
+    "status": "completed",
+    "submissionId": 43
+  },
+  {
+    "code": "import java.util.*;\n\nclass AnagramChecker {\n    public static boolean areAnagrams(String s1, String s2) {\n        if (s1.length() != s2.length()) return false;\n\n        int[] freq = new int[26]; // Since strings contain only lowercase letters\n\n        // Count frequency of characters in s1 and s2\n        for (int i = 0; i < s1.length(); i++) {\n            freq[s1.charAt(i) - 'a']++;  // Increment for s1\n            freq[s2.charAt(i) - 'a']--;  // Decrement for s2\n        }\n\n        // If all values are 0, they are anagrams\n        for (int count : freq) {\n            if (count != 0) return false;\n        }\n        return true;\n    }\n\n    public static void main(String[] args) {\n        System.out.println(areAnagrams(\"geeks\", \"kseeg\")); // Output: true\n        System.out.println(areAnagrams(\"allergy\", \"allergic\")); // Output: false\n        System.out.println(areAnagrams(\"g\", \"g\")); // Output: true\n    }\n}\n",
+    "questionId": "5",
+    "studentScore": 7,
+    "username": "Kane",
+    "timestamp": "2025-03-30T14:17:43.188Z",
+    "aiScore": 0,
+    "maxScore": 100,
+    "absoluteDifference": 7,
+    "questionDifficulty": "Medium",
+    "feedback": "",
+    "status": "completed",
+    "submissionId": 44
+  },
+  {
+    "code": "class ListNode {\n    int val;\n    ListNode next;\n    \n    ListNode(int val) {\n        this.val = val;\n        this.next = null;\n    }\n}\n\npublic class PalindromeLinkedList {\n    \n    public static boolean isPalindrome(ListNode head) {\n        if (head == null || head.next == null) {\n            return true;\n        }\n\n        // Step 1: Find the middle using slow and fast pointers\n        ListNode slow = head, fast = head;\n        while (fast != null && fast.next != null) {\n            slow = slow.next;\n            fast = fast.next.next;\n        }\n\n        // Step 2: Reverse the second half of the list\n        ListNode secondHalfHead = reverseList(slow);\n\n        // Step 3: Compare the two halves\n        ListNode firstHalfHead = head;\n        ListNode secondHalf = secondHalfHead;\n        boolean isPalindrome = true;\n\n        while (secondHalf != null) {\n            if (firstHalfHead.val != secondHalf.val) {\n                isPalindrome = false;\n                break;\n            }\n            firstHalfHead = firstHalfHead.next;\n            secondHalf = secondHalf.next;\n        }\n\n        // Step 4: Restore the list (optional)\n        reverseList(secondHalfHead);\n\n        return isPalindrome;\n    }\n\n    // Helper function to reverse a linked list\n    private static ListNode reverseList(ListNode head) {\n        ListNode prev = null, curr = head;\n        while (curr != null) {\n            ListNode nextTemp = curr.next;\n            curr.next = prev;\n            prev = curr;\n            curr = nextTemp;\n        }\n        return prev;\n    }\n\n    // Helper function to print a linked list (for debugging)\n    private static void printList(ListNode head) {\n        ListNode temp = head;\n        while (temp != null) {\n            System.out.print(temp.val + \" -> \");\n            temp = temp.next;\n        }\n        System.out.println(\"NULL\");\n    }\n\n    // Driver code for testing\n    public static void main(String[] args) {\n        ListNode head = new ListNode(1);\n        head.next = new ListNode(2);\n        head.next.next = new ListNode(1);\n        head.next.next.next = new ListNode(1);\n        head.next.next.next.next = new ListNode(2);\n        head.next.next.next.next.next = new ListNode(1);\n\n        System.out.println(\"Is Palindrome: \" + isPalindrome(head)); // Output: true\n    }\n}\n",
+    "questionId": "26",
+    "studentScore": 4,
+    "username": "Kane",
+    "timestamp": "2025-03-31T06:58:00.598Z",
+    "aiScore": 4,
+    "maxScore": 4,
+    "absoluteDifference": 0,
+    "questionDifficulty": "Medium",
+    "feedback": "Criterion 1:\nPoints: 1/1\nThe pointers 'prev' is initialized as null, 'curr' is initialized as head, and 'nextTemp' is declared within the reverseList method.\n\nCriterion 2:\nPoints: 2/2\nThe while loop in the reverseList method correctly iterates through the linked list, reversing the pointers at each step.\n\nCriterion 3:\nPoints: 1/1\nAt the end of the reverseList method, the head pointer is updated to point to 'prev', which is the new head of the reversed list.\n",
+    "status": "completed",
+    "submissionId": 46
+  },
+  {
+    "code": "class ListNode {\n    int val;\n    ListNode next;\n    \n    ListNode(int val) {\n        this.val = val;\n        this.next = null;\n    }\n}\n\npublic class PalindromeLinkedList {\n    \n    public static boolean isPalindrome(ListNode head) {\n        if (head == null || head.next == null) {\n            return true;\n        }\n\n        // Step 1: Find the middle using slow and fast pointers\n        ListNode slow = head, fast = head;\n        while (fast != null && fast.next != null) {\n            slow = slow.next;\n            fast = fast.next.next;\n        }\n\n        // Step 2: Reverse the second half of the list\n        ListNode secondHalfHead = reverseList(slow);\n\n        // Step 3: Compare the two halves\n        ListNode firstHalfHead = head;\n        ListNode secondHalf = secondHalfHead;\n        boolean isPalindrome = true;\n\n        while (secondHalf != null) {\n            if (firstHalfHead.val != secondHalf.val) {\n                isPalindrome = false;\n                break;\n            }\n            firstHalfHead = firstHalfHead.next;\n            secondHalf = secondHalf.next;\n        }\n\n        // Step 4: Restore the list (optional)\n        reverseList(secondHalfHead);\n\n        return isPalindrome;\n    }\n\n    // Helper function to reverse a linked list\n    private static ListNode reverseList(ListNode head) {\n        ListNode prev = null, curr = head;\n        while (curr != null) {\n            ListNode nextTemp = curr.next;\n            curr.next = prev;\n            prev = curr;\n            curr = nextTemp;\n        }\n        return prev;\n    }\n\n    // Helper function to print a linked list (for debugging)\n    private static void printList(ListNode head) {\n        ListNode temp = head;\n        while (temp != null) {\n            System.out.print(temp.val + \" -> \");\n            temp = temp.next;\n        }\n        System.out.println(\"NULL\");\n    }\n\n    // Driver code for testing\n    public static void main(String[] args) {\n        ListNode head = new ListNode(1);\n        head.next = new ListNode(2);\n        head.next.next = new ListNode(1);\n        head.next.next.next = new ListNode(1);\n        head.next.next.next.next = new ListNode(2);\n        head.next.next.next.next.next = new ListNode(1);\n\n        System.out.println(\"Is Palindrome: \" + isPalindrome(head)); // Output: true\n    }\n}\n",
+    "questionId": "26",
+    "studentScore": 5,
+    "username": "Kane",
+    "timestamp": "2025-03-31T07:02:04.924Z",
+    "aiScore": 4,
+    "maxScore": 4,
+    "absoluteDifference": 1,
+    "questionDifficulty": "Medium",
+    "feedback": "Criterion 1:\nPoints: 1/1\nThe pointers 'prev' is initialized to null and 'curr' is initialized to 'head' in the reverseList method.\n\nCriterion 2:\nPoints: 2/2\nThe while loop in the reverseList method correctly traverses the linked list and reverses the pointers at each step.\n\nCriterion 3:\nPoints: 1/1\nAfter the traversal in the reverseList method, the head pointer is updated to 'prev', which points to the new head of the reversed list.\n",
+    "status": "completed",
+    "submissionId": 47
+  },
+  {
+    "code": "class ListNode {\n    int val;\n    ListNode next;\n    \n    ListNode(int val) {\n        this.val = val;\n        this.next = null;\n    }\n}\n\npublic class PalindromeLinkedList {\n    \n    public static boolean isPalindrome(ListNode head) {\n        if (head == null || head.next == null) {\n            return true;\n        }\n\n        // Step 1: Find the middle using slow and fast pointers\n        ListNode slow = head, fast = head;\n        while (fast != null && fast.next != null) {\n            slow = slow.next;\n            fast = fast.next.next;\n        }\n\n        // Step 2: Reverse the second half of the list\n        ListNode secondHalfHead = reverseList(slow);\n\n        // Step 3: Compare the two halves\n        ListNode firstHalfHead = head;\n        ListNode secondHalf = secondHalfHead;\n        boolean isPalindrome = true;\n\n        while (secondHalf != null) {\n            if (firstHalfHead.val != secondHalf.val) {\n                isPalindrome = false;\n                break;\n            }\n            firstHalfHead = firstHalfHead.next;\n            secondHalf = secondHalf.next;\n        }\n\n        // Step 4: Restore the list (optional)\n        reverseList(secondHalfHead);\n\n        return isPalindrome;\n    }\n\n    // Helper function to reverse a linked list\n    private static ListNode reverseList(ListNode head) {\n        ListNode prev = null, curr = head;\n        while (curr != null) {\n            ListNode nextTemp = curr.next;\n            curr.next = prev;\n            prev = curr;\n            curr = nextTemp;\n        }\n        return prev;\n    }\n\n    // Helper function to print a linked list (for debugging)\n    private static void printList(ListNode head) {\n        ListNode temp = head;\n        while (temp != null) {\n            System.out.print(temp.val + \" -> \");\n            temp = temp.next;\n        }\n        System.out.println(\"NULL\");\n    }\n\n    // Driver code for testing\n    public static void main(String[] args) {\n        ListNode head = new ListNode(1);\n        head.next = new ListNode(2);\n        head.next.next = new ListNode(1);\n        head.next.next.next = new ListNode(1);\n        head.next.next.next.next = new ListNode(2);\n        head.next.next.next.next.next = new ListNode(1);\n\n        System.out.println(\"Is Palindrome: \" + isPalindrome(head)); // Output: true\n    }\n}\n",
+    "questionId": "26",
+    "studentScore": 7,
+    "username": "jhon@gmail.com",
+    "timestamp": "2025-03-31T07:06:46.117Z",
+    "aiScore": 3,
+    "maxScore": 4,
+    "absoluteDifference": 4,
+    "questionDifficulty": "Medium",
+    "feedback": "Criterion 1:\nPoints: 1/1\nThe pointers 'prev' (initialized to null), 'curr' (initialized to head), and 'nextTemp' (initialized within the loop) are correctly set up in the reverseList method.\n\nCriterion 2:\nPoints: 2/2\nThe while loop in the reverseList method correctly traverses the linked list, reversing the pointers at each step until 'curr' becomes null.\n\nCriterion 3:\nPoints: 0/1\nThe head pointer is not updated in the context of the main function to point to the new head after reversal; instead, the isPalindrome method checks for palindrome properties, which is not the task.\n",
+    "status": "completed",
+    "submissionId": 48
+  },
+  {
+    "code": "class ListNode {\n    int val;\n    ListNode next;\n    \n    ListNode(int val) {\n        this.val = val;\n        this.next = null;\n    }\n}\n\npublic class PalindromeLinkedList {\n    \n    public static boolean isPalindrome(ListNode head) {\n        if (head == null || head.next == null) {\n            return true;\n        }\n\n        // Step 1: Find the middle using slow and fast pointers\n        ListNode slow = head, fast = head;\n        while (fast != null && fast.next != null) {\n            slow = slow.next;\n            fast = fast.next.next;\n        }\n\n        // Step 2: Reverse the second half of the list\n        ListNode secondHalfHead = reverseList(slow);\n\n        // Step 3: Compare the two halves\n        ListNode firstHalfHead = head;\n        ListNode secondHalf = secondHalfHead;\n        boolean isPalindrome = true;\n\n        while (secondHalf != null) {\n            if (firstHalfHead.val != secondHalf.val) {\n                isPalindrome = false;\n                break;\n            }\n            firstHalfHead = firstHalfHead.next;\n            secondHalf = secondHalf.next;\n        }\n\n        // Step 4: Restore the list (optional)\n        reverseList(secondHalfHead);\n\n        return isPalindrome;\n    }\n\n    // Helper function to reverse a linked list\n    private static ListNode reverseList(ListNode head) {\n        ListNode prev = null, curr = head;\n        while (curr != null) {\n            ListNode nextTemp = curr.next;\n            curr.next = prev;\n            prev = curr;\n            curr = nextTemp;\n        }\n        return prev;\n    }\n\n    // Helper function to print a linked list (for debugging)\n    private static void printList(ListNode head) {\n        ListNode temp = head;\n        while (temp != null) {\n            System.out.print(temp.val + \" -> \");\n            temp = temp.next;\n        }\n        System.out.println(\"NULL\");\n    }\n\n    // Driver code for testing\n    public static void main(String[] args) {\n        ListNode head = new ListNode(1);\n        head.next = new ListNode(2);\n        head.next.next = new ListNode(1);\n        head.next.next.next = new ListNode(1);\n        head.next.next.next.next = new ListNode(2);\n        head.next.next.next.next.next = new ListNode(1);\n\n        System.out.println(\"Is Palindrome: \" + isPalindrome(head)); // Output: true\n    }\n}\n",
+    "questionId": "26",
+    "studentScore": 3,
+    "username": "jhon@gmail.com",
+    "timestamp": "2025-03-31T07:08:44.204Z",
+    "aiScore": 3,
+    "maxScore": 4,
+    "absoluteDifference": 0,
+    "questionDifficulty": "Medium",
+    "feedback": "Criterion 1:\nPoints: 1/1\nThe reverseList method correctly initializes the 'prev' pointer as null and 'curr' as the head of the list.\n\nCriterion 2:\nPoints: 2/2\nThe reverseList method traverses the linked list and reverses the pointers at each step, correctly implementing the reversal logic.\n\nCriterion 3:\nPoints: 0/1\nThe main function does not update the head pointer to point to the new first node after reversal; it is not called in the context of reversing the list as required by the problem statement.\n",
+    "status": "completed",
+    "submissionId": 49
+  },
+  {
+    "code": "class ListNode {\n    int val;\n    ListNode next;\n    \n    ListNode(int val) {\n        this.val = val;\n        this.next = null;\n    }\n}\n\npublic class PalindromeLinkedList {\n    \n    public static boolean isPalindrome(ListNode head) {\n        if (head == null || head.next == null) {\n            return true;\n        }\n\n        // Step 1: Find the middle using slow and fast pointers\n        ListNode slow = head, fast = head;\n        while (fast != null && fast.next != null) {\n            slow = slow.next;\n            fast = fast.next.next;\n        }\n\n        // Step 2: Reverse the second half of the list\n        ListNode secondHalfHead = reverseList(slow);\n\n        // Step 3: Compare the two halves\n        ListNode firstHalfHead = head;\n        ListNode secondHalf = secondHalfHead;\n        boolean isPalindrome = true;\n\n        while (secondHalf != null) {\n            if (firstHalfHead.val != secondHalf.val) {\n                isPalindrome = false;\n                break;\n            }\n            firstHalfHead = firstHalfHead.next;\n            secondHalf = secondHalf.next;\n        }\n\n        // Step 4: Restore the list (optional)\n        reverseList(secondHalfHead);\n\n        return isPalindrome;\n    }\n\n    // Helper function to reverse a linked list\n    private static ListNode reverseList(ListNode head) {\n        ListNode prev = null, curr = head;\n        while (curr != null) {\n            ListNode nextTemp = curr.next;\n            curr.next = prev;\n            prev = curr;\n            curr = nextTemp;\n        }\n        return prev;\n    }\n\n    // Helper function to print a linked list (for debugging)\n    private static void printList(ListNode head) {\n        ListNode temp = head;\n        while (temp != null) {\n            System.out.print(temp.val + \" -> \");\n            temp = temp.next;\n        }\n        System.out.println(\"NULL\");\n    }\n\n    // Driver code for testing\n    public static void main(String[] args) {\n        ListNode head = new ListNode(1);\n        head.next = new ListNode(2);\n        head.next.next = new ListNode(1);\n        head.next.next.next = new ListNode(1);\n        head.next.next.next.next = new ListNode(2);\n        head.next.next.next.next.next = new ListNode(1);\n\n        System.out.println(\"Is Palindrome: \" + isPalindrome(head)); // Output: true\n    }\n}\n",
+    "questionId": "26",
+    "studentScore": 1,
+    "username": "jhon@gmail.com",
+    "timestamp": "2025-03-31T07:11:07.035Z",
+    "aiScore": 4,
+    "maxScore": 4,
+    "absoluteDifference": 3,
+    "questionDifficulty": "Medium",
+    "feedback": "Criterion 1:\nPoints: 1/1\nThe 'reverseList' method correctly initializes 'prev' to null and 'curr' to the head of the list.\n\nCriterion 2:\nPoints: 2/2\nThe 'reverseList' method traverses the linked list and correctly reverses the pointers at each step.\n\nCriterion 3:\nPoints: 1/1\nAfter the reversal in 'reverseList', the head pointer is updated to point to 'prev', which is the new head of the reversed list.\n",
+    "status": "completed",
+    "submissionId": 50
+  },
+  {
+    "code": "public class MaxProductSubarray {\n\n    public static int maxProduct(int[] arr, int k) {\n        int n = arr.length;\n        if (n < k) return -1;  // Edge case: If k is greater than array size\n\n        // Compute the initial product of the first 'k' elements\n        int maxProduct = 1;\n        for (int i = 0; i < k; i++) {\n            maxProduct *= arr[i];\n        }\n\n        int currentProduct = maxProduct;\n\n        // Sliding window\n        for (int i = k; i < n; i++) {\n            if (arr[i - k] != 0) {  // Avoid division by zero\n                currentProduct = (currentProduct / arr[i - k]) * arr[i];\n            } else {  \n                // Recalculate product from scratch if zero was in the previous window\n                currentProduct = 1;\n                for (int j = i - k + 1; j <= i; j++) {\n                    currentProduct *= arr[j];\n                }\n            }\n            maxProduct = Math.max(maxProduct, currentProduct);\n        }\n\n        return maxProduct;\n    }\n\n    public static void main(String[] args) {\n        int[] arr1 = {1, 2, 3, 4};\n        int k1 = 2;\n        System.out.println(\"Max Product: \" + maxProduct(arr1, k1));  // Output: 12\n\n        int[] arr2 = {1, 6, 7, 8};\n        int k2 = 3;\n        System.out.println(\"Max Product: \" + maxProduct(arr2, k2));  // Output: 336\n    }\n}\n",
+    "questionId": "21",
+    "studentScore": 5,
+    "username": "jhon",
+    "timestamp": "2025-03-31T07:17:37.270Z",
+    "aiScore": 6,
+    "maxScore": 7,
+    "absoluteDifference": 1,
+    "questionDifficulty": "Medium",
+    "feedback": "Criterion 1:\nPoints: 1/1\nThe code initializes the window boundaries implicitly by using the loop indices.\n\nCriterion 2:\nPoints: 1/1\nThe code initializes maxProduct to 1 and tracks the current product.\n\nCriterion 3:\nPoints: 2/2\nThe sliding window logic is implemented correctly, maintaining a window of size k.\n\nCriterion 4:\nPoints: 1/1\nThe maximum product is updated correctly when the window size reaches k.\n\nCriterion 5:\nPoints: 0/1\nThe code does not handle zeros correctly; it resets the product to 1 when a zero is encountered, leading to incorrect calculations.\n\nCriterion 6:\nPoints: 1/1\nThe code returns the maximum product found at the end of the function.\n",
+    "status": "completed",
+    "submissionId": 51
   }
 ]

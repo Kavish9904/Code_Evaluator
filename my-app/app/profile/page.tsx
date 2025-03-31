@@ -1,139 +1,113 @@
 "use client";
 
-import type React from "react";
-
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "../../components/ui/card";
-import { GraduationCapIcon, User, Mail, Briefcase } from "lucide-react";
 import { authService } from "../../services/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 export default function ProfilePage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const user = authService.getCurrentUser();
-    if (!user) {
-      router.push("/login");
-    } else {
+    if (user) {
       setName(user.name);
       setEmail(user.email);
       setBio(user.bio || "");
+    } else {
+      router.push("/login");
     }
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically send a request to your API to update the user's profile
-    console.log("Profile update attempt with:", { name, email, bio });
+    setIsLoading(true);
 
-    // Update the user in localStorage
-    const updatedUser = { ...authService.getCurrentUser(), name, email, bio };
-    localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+    try {
+      const user = authService.getCurrentUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
 
-    // Show success message
-    alert("Profile updated successfully!");
-  };
+      // Update user profile
+      const response = await fetch("/api/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          bio,
+        }),
+      });
 
-  const handleLogout = () => {
-    authService.logout();
-    router.push("/");
+      if (!response.ok) {
+        throw new Error("Failed to update profile");
+      }
+
+      const updatedUser = await response.json();
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("Failed to update profile");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900">
-      <header className="px-4 lg:px-6 h-14 flex items-center justify-between bg-white dark:bg-gray-800 border-b">
-        <Link className="flex items-center justify-center" href="/">
-          <GraduationCapIcon className="h-6 w-6" />
-          <span className="ml-2 text-lg font-bold">CodeEvaluator</span>
-        </Link>
-        <nav className="flex items-center gap-4">
-          <Link
-            href="/dashboard"
-            className="text-sm font-medium hover:underline"
-          >
-            Dashboard
-          </Link>
-          <Link
-            href="/rankings"
-            className="text-sm font-medium hover:underline"
-          >
-            Rankings
-          </Link>
-        </nav>
-      </header>
-      <main className="flex-1 py-12 px-4 md:px-6">
-        <div className="max-w-4xl mx-auto">
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle className="text-2xl">Your Profile</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-base">
-                    <User className="w-4 h-4 inline-block mr-2" />
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="text-lg"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-base">
-                    <Mail className="w-4 h-4 inline-block mr-2" />
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="text-lg"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bio" className="text-base">
-                    <Briefcase className="w-4 h-4 inline-block mr-2" />
-                    Bio
-                  </Label>
-                  <Input
-                    id="bio"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    className="text-lg"
-                  />
-                </div>
-                <Button type="submit" className="w-full">
-                  Update Profile
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-white dark:bg-gray-800">
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          © 2025 PromptMaster. All rights reserved.
-        </p>
-      </footer>
+    <div className="container mx-auto py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Settings</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                disabled
+                className="bg-gray-100"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bio">Bio</Label>
+              <Textarea
+                id="bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Tell us about yourself..."
+                className="min-h-[100px]"
+              />
+            </div>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save Changes"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
