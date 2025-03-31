@@ -91,3 +91,13 @@ build/Release
 
 # dataconnect generated files
 .dataconnect
+
+# Python virtual environment
+venv/
+.venv/
+ENV/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
