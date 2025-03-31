@@ -50,7 +50,6 @@ interface CodeSubmission {
 }
 
 export function PromptEditor({ initialQuestion }: PromptEditorProps) {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0);
   const [questions, setQuestions] = React.useState<Question[]>([
     initialQuestion,
   ]);
@@ -65,9 +64,6 @@ export function PromptEditor({ initialQuestion }: PromptEditorProps) {
   );
   const [submissions, setSubmissions] = React.useState<CodeSubmission[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = React.useState(false);
-  const [selectedCategory, setSelectedCategory] = React.useState<string | null>(
-    null
-  );
   const [mainTab, setMainTab] = React.useState("question");
   const [bottomTab, setBottomTab] = React.useState("rubric");
   const [isSolutionUnlocked, setIsSolutionUnlocked] = React.useState(false);
@@ -106,67 +102,10 @@ export function PromptEditor({ initialQuestion }: PromptEditorProps) {
     fetchUsername();
   }, []);
 
-  // Fetch questions from the backend
-  React.useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        const response = await fetch("/api/questions");
-        if (!response.ok) {
-          throw new Error("Failed to fetch questions");
-        }
-        const data = await response.json();
-        setQuestions(data);
-      } catch (error) {
-        console.error("Error fetching questions:", error);
-      } finally {
-        setIsLoadingQuestions(false);
-      }
-    };
-
-    fetchQuestions();
-  }, []);
-
-  const categories = React.useMemo(() => {
-    const uniqueCategories = new Set(questions.map((q) => q.category));
-    return Array.from(uniqueCategories).filter(Boolean);
-  }, [questions]);
-
-  const filteredQuestions = React.useMemo(() => {
-    if (!selectedCategory) return questions;
-    return questions.filter((q) => q.category === selectedCategory);
-  }, [questions, selectedCategory]);
-
   const currentQuestion = React.useMemo(
-    () => filteredQuestions[currentQuestionIndex] || initialQuestion,
-    [filteredQuestions, currentQuestionIndex, initialQuestion]
+    () => initialQuestion,
+    [initialQuestion]
   );
-
-  const handlePrevQuestion = () => {
-    setCurrentQuestionIndex((prev) => (prev > 0 ? prev - 1 : prev));
-    setPrompt("");
-    setTestResult(null);
-    setSelectedTestCase(null);
-    setIsSolutionUnlocked(false);
-  };
-
-  const handleNextQuestion = () => {
-    setCurrentQuestionIndex((prev) =>
-      prev < filteredQuestions.length - 1 ? prev + 1 : prev
-    );
-    setPrompt("");
-    setTestResult(null);
-    setSelectedTestCase(null);
-    setIsSolutionUnlocked(false);
-  };
-
-  const handleRandomQuestion = () => {
-    const randomIndex = Math.floor(Math.random() * filteredQuestions.length);
-    setCurrentQuestionIndex(randomIndex);
-    setPrompt("");
-    setTestResult(null);
-    setSelectedTestCase(null);
-    setIsSolutionUnlocked(false);
-  };
 
   const handleRunTest = async () => {
     if (!prompt) {
@@ -197,7 +136,28 @@ export function PromptEditor({ initialQuestion }: PromptEditorProps) {
       }
 
       const result = await response.json();
-      setTestResult(`Feedback:\n${result.feedback}`);
+      console.log("Evaluation result:", result);
+
+      // Format the feedback based on its structure
+      let formattedFeedback = "No feedback available";
+      if (result.feedback) {
+        if (typeof result.feedback === "string") {
+          formattedFeedback = result.feedback;
+        } else if (typeof result.feedback === "object") {
+          formattedFeedback = Object.entries(result.feedback)
+            .map(([key, value]: [string, any]) => {
+              if (value.points_awarded !== undefined) {
+                return `Criterion ${key}:\nPoints: ${value.points_awarded}/${value.max_points}\n${value.feedback}\n`;
+              }
+              return `${key}: ${value}\n`;
+            })
+            .join("\n");
+        }
+      }
+
+      setTestResult(
+        `Score: ${result.score || 0}\n\nFeedback:\n${formattedFeedback}`
+      );
     } catch (error) {
       console.error("Error evaluating code:", error);
       setTestResult("Failed to evaluate code. Please try again.");
@@ -238,7 +198,6 @@ export function PromptEditor({ initialQuestion }: PromptEditorProps) {
           code: prompt,
           questionId: currentQuestion.id,
           studentScore: selfScore,
-          username: username,
         }),
       });
 
@@ -253,12 +212,8 @@ export function PromptEditor({ initialQuestion }: PromptEditorProps) {
       setShowSelfEvalDialog(false);
       setMainTab("submissions");
 
-      // Add the new submission to the list with the correct username
-      const newSubmission = {
-        ...data,
-        username: username,
-      };
-      setSubmissions((prev) => [newSubmission, ...prev]);
+      // Add the new submission to the list
+      setSubmissions((prev) => [data, ...prev]);
 
       // Format and show evaluation results
       const formattedFeedback =
@@ -428,13 +383,18 @@ export function PromptEditor({ initialQuestion }: PromptEditorProps) {
       return;
     }
 
+    // Clean the username before sending
+    const cleanUsername = newUsername.includes("@")
+      ? newUsername.split("@")[0]
+      : newUsername;
+
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username: newUsername }),
+        body: JSON.stringify({ username: cleanUsername }),
       });
 
       if (!response.ok) {
@@ -442,7 +402,7 @@ export function PromptEditor({ initialQuestion }: PromptEditorProps) {
       }
 
       const data = await response.json();
-      setUsername(data.username);
+      setUsername(cleanUsername); // Use the cleaned username locally
       setShowLoginDialog(false);
 
       // Refresh submissions after login
@@ -462,45 +422,26 @@ export function PromptEditor({ initialQuestion }: PromptEditorProps) {
           <GraduationCap className="w-6 h-6" />
           <div className="flex items-center space-x-4">
             <span className="font-semibold">Problems</span>
-            <Select
-              value={selectedCategory || "all"}
-              onValueChange={(value) =>
-                setSelectedCategory(value === "all" ? null : value)
-              }
-              disabled={isLoadingQuestions}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue
-                  placeholder={
-                    isLoadingQuestions ? "Loading..." : "All Categories"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <div className="flex items-center space-x-1">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={handlePrevQuestion}
-                disabled={currentQuestionIndex === 0 || isLoadingQuestions}
+                onClick={() =>
+                  (window.location.href = `/challenges?id=${
+                    Number(currentQuestion.id) - 1
+                  }`)
+                }
+                disabled={Number(currentQuestion.id) <= 1}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={handleNextQuestion}
-                disabled={
-                  currentQuestionIndex === filteredQuestions.length - 1 ||
-                  isLoadingQuestions
+                onClick={() =>
+                  (window.location.href = `/challenges?id=${
+                    Number(currentQuestion.id) + 1
+                  }`)
                 }
               >
                 <ChevronRight className="h-4 w-4" />
@@ -508,8 +449,10 @@ export function PromptEditor({ initialQuestion }: PromptEditorProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={handleRandomQuestion}
-                disabled={isLoadingQuestions}
+                onClick={() => {
+                  const randomId = Math.floor(Math.random() * 20) + 1; // Assuming we have 20 questions
+                  window.location.href = `/challenges?id=${randomId}`;
+                }}
               >
                 <Shuffle className="h-4 w-4" />
               </Button>
