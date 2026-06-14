@@ -96,10 +96,10 @@ class AuthService {
       // Store user data in localStorage and cookie
       if (typeof window !== "undefined") {
         localStorage.setItem("user", JSON.stringify(this.user));
-        await this.setAuthCookie(this.user.id);
+        await this.setAuthCookie(userData.id);
       }
 
-      return this.user;
+      return userData;
     } catch (error) {
       console.error("Login failed:", error);
       throw this.handleError(error);
@@ -114,10 +114,10 @@ class AuthService {
       // Store user data in localStorage and cookie
       if (typeof window !== "undefined") {
         localStorage.setItem("user", JSON.stringify(this.user));
-        await this.setAuthCookie(this.user.id);
+        await this.setAuthCookie(response.data.id);
       }
 
-      return this.user;
+      return response.data;
     } catch (error) {
       console.error("Signup failed:", error);
       throw this.handleError(error);
